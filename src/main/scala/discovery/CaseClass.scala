@@ -21,16 +21,23 @@ case class ImportedType(fqcn: String, name: String) extends ParamType
 
 case class EnumType(name: String, typeName: String, cases: List[String]) extends ParamType {
   override def toString = {
+    def toObjectName(_case: String) = _case.toUpperCase.replaceAll("\\W", "_")
     def objects = cases
-      .map(c =>
-        s"""  case object ${c.toUpperCase.replaceAll("\\W", "_")} extends $typeName("$c")""")
+      .map(c => s"""  case object ${toObjectName(c)} extends $typeName("$c")""")
       .mkString("\n")
+    val values = cases.map(toObjectName).mkString("List(", ", ", ")")
 
-    s"""sealed abstract class $typeName(override val entryName: String) extends EnumEntry
-       |object $typeName extends Enum[$typeName] with CirceEnum[$typeName] {
-       |  lazy val values = findValues
+    s"""sealed abstract class $typeName(val value: String)
+       |object $typeName {
+       |
        |$objects
        |
+       |  val values = $values
+       |
+       |  def fromString(input: String): Either[String, $typeName] = values.find(_.value == input).toRight(s"'$$input' was not a valid value for $typeName")
+       |
+       |  implicit val decoder: _root_.io.circe.Decoder[$typeName] = _root_.io.circe.Decoder[String].emap(s => fromString(s))
+       |  implicit val encoder: _root_.io.circe.Encoder[$typeName] = _root_.io.circe.Encoder[String].contramap(_.value)
        |}
        |""".stripMargin
   }
@@ -42,10 +49,9 @@ case class CaseClass(
 ) {
   def imports = {
     def go(param: ParamType, imports: List[String]): List[String] = param match {
-      case SimpleType(_) => imports
       case ListType(elemType) => go(elemType, imports)
       case ImportedType(fqcn, _) => fqcn :: imports
-      case EnumType(_, _, _) => "enumeratum._" :: imports
+      case _ => imports
     }
     parameters
       .flatMap(p => go(p.`type`, Nil))

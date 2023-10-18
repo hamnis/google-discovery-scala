@@ -43,12 +43,18 @@ class CodegenTest extends munit.FunSuite {
                      |)
                      |
                      |object Thingy {
-                     |sealed abstract class ThingyKind(override val entryName: String) extends EnumEntry
-                     |object ThingyKind extends Enum[ThingyKind] with CirceEnum[ThingyKind] {
-                     |  lazy val values = findValues
+                     |sealed abstract class ThingyKind(val value: String)
+                     |object ThingyKind {
+                     |
                      |  case object ONE extends ThingyKind("one")
                      |  case object TWO extends ThingyKind("two")
                      |
+                     |  val values = List(ONE, TWO)
+                     |
+                     |  def fromString(input: String): Either[String, ThingyKind] = values.find(_.value == input).toRight(s"'$input' was not a valid value for ThingyKind")
+                     |
+                     |  implicit val decoder: _root_.io.circe.Decoder[ThingyKind] = _root_.io.circe.Decoder[String].emap(s => fromString(s))
+                     |  implicit val encoder: _root_.io.circe.Encoder[ThingyKind] = _root_.io.circe.Encoder[String].contramap(_.value)
                      |}
                      |
                      |  implicit lazy val codec: _root_.io.circe.Codec[Thingy] = _root_.io.circe.generic.semiauto.deriveCodec[Thingy]
@@ -56,24 +62,5 @@ class CodegenTest extends munit.FunSuite {
                      |""".stripMargin
 
     assertEquals(ccAsString, expected)
-    val errors = compileErrors(
-      """final case class Thingy(
-          name: String,
-          kind: Thingy.ThingyKind
-        )
-
-        object Thingy {
-        sealed abstract class ThingyKind(override val entryName: String) extends enumeratum.EnumEntry
-        object ThingyKind extends enumeratum.Enum[ThingyKind] with enumeratum.CirceEnum[ThingyKind] {
-          val values = findValues
-          case object one extends ThingyKind("one")
-          case object two extends ThingyKind("two")
-
-        }
-
-          implicit lazy val codec: _root_.io.circe.Codec[Thingy] = _root_.io.circe.generic.semiauto.deriveCodec[Thingy]
-        }
-        """)
-    assertEquals(errors, "")
   }
 }
