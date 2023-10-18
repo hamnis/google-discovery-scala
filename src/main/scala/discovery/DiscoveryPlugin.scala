@@ -33,7 +33,7 @@ object DiscoveryPlugin extends AutoPlugin {
       .map(_.getParentFile.toGlob / "discovery" / "*.json"),
     Compile / discoveryGenerate := {
       val f = (Compile / discoveryGenerate).inputFiles.head
-      val discovery = parser.decode[Discovery](IO.read(f.toFile)).fold(throw _, identity)
+      val discovery = jawn.decodePath[Discovery](f).fold(throw _, identity)
       val mangedDir = (Compile / sourceManaged).value / "scala"
       val packageName = discoveryPackage.value
       val packageDir = packageName.split("\\.").foldLeft(mangedDir)(_ / _)
@@ -86,7 +86,8 @@ object DiscoveryPlugin extends AutoPlugin {
       parentName: String,
       name: String,
       property: Schema): Writer[List[GeneratedType], Parameter] =
-    mkPropertyType(parentName, name, property).map(t => Parameter(name, t, required = false))
+    mkPropertyType(parentName, name, property).map(t =>
+      Parameter(name, t, property.description, required = false))
 
   def mkPropertyType(
       parentName: String,

@@ -11,8 +11,8 @@ class CodegenTest extends munit.FunSuite {
     val cc = CaseClass(
       "Person",
       List(
-        Parameter("name", ParamType.simple("String"), true),
-        Parameter("age", ParamType.simple("Int"), true)))
+        Parameter("name", ParamType.simple("String"), None, true),
+        Parameter("age", ParamType.simple("Int"), None, true)))
 
     val ccAsString = cc.toString
     val expected = """final case class Person(
@@ -22,7 +22,20 @@ class CodegenTest extends munit.FunSuite {
                      |
                      |object Person {
                      |
-                     |  implicit lazy val codec: _root_.io.circe.Codec[Person] = _root_.io.circe.Codec.forProduct2("name", "age")(Person.apply)(x => (x.name, x.age))
+                     |  implicit val encoder: _root_.io.circe.Encoder[Person] = _root_.io.circe.Encoder.instance{ x =>
+                     |      import io.circe.syntax._
+                     |
+                     |      io.circe.Json.obj(
+                     |        "name" -> x.name.asJson,
+                     |        "age" -> x.age.asJson
+                     |      )
+                     |  }
+                     |  implicit val decoder: _root_.io.circe.Decoder[Person] = _root_.io.circe.Decoder.instance{ c =>
+                     |      for {
+                     |        v0 <- c.get[String]("name")
+                     |        v1 <- c.get[Int]("age")
+                     |      } yield Person(v0,v1)
+                     |  }
                      |}
                      |""".stripMargin
 

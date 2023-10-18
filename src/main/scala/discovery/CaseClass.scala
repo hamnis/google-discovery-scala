@@ -70,29 +70,29 @@ case class CaseClass(
   def encoderInstance = {
     val asVector = parameters.toVector
     val instance =
-      asVector.map(p => s"${lit(p.name)} -> x.${Sanitize(p.name)}.asJson").mkString(",\n    ")
+      asVector.map(p => s"${lit(p.name)} -> x.${Sanitize(p.name)}.asJson").mkString(",\n        ")
 
     s"""Encoder.instance{ x =>
-       |  import io.circe.syntax._
+       |      import io.circe.syntax._
        |
-       |  io.circe.Json.obj(
-       |    $instance
-       |  )
-       |}""".stripMargin
+       |      io.circe.Json.obj(
+       |        $instance
+       |      )
+       |  }""".stripMargin
   }
 
   def decoderInstance = {
     val asVector = parameters.toVector
     val cases = asVector.zipWithIndex
       .map { case (p, idx) => s"""v$idx <- c.get[${p.asType}](${lit(p.name)})""" }
-      .mkString("\n    ")
+      .mkString("\n        ")
     val fields = asVector.zipWithIndex.map { case (_, idx) => s"v$idx" }.mkString(",")
 
     s"""|Decoder.instance{ c =>
-        |for {
-        |  $cases
-        | } yield $name($fields)
-        |}""".stripMargin
+        |      for {
+        |        $cases
+        |      } yield $name($fields)
+        |  }""".stripMargin
   }
 
   override def toString: String = {
@@ -113,15 +113,18 @@ case class CaseClass(
 case class Parameter(
     name: String,
     `type`: ParamType,
+    description: Option[String],
     required: Boolean
 ) {
   def asType = if (required) s"${`type`.name}" else s"Option[${`type`.name}]"
 
-  override def toString: String =
+  override def toString: String = {
+    val comment = description.fold("")("// " + _ + "\n")
     if (required)
-      s"${Sanitize(name)}: $asType"
+      s"$comment${Sanitize(name)}: $asType"
     else
-      s"${Sanitize(name)}: $asType = None"
+      s"$comment${Sanitize(name)}: $asType = None"
+  }
 }
 
 object Sanitize {

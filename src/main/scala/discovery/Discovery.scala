@@ -1,6 +1,6 @@
 package discovery
 
-case class Discovery(schemas: Map[String, Schema])
+case class Discovery(schemas: Map[String, Schema], revision: String)
 case class Schema(
     description: Option[String] = None,
     `type`: Option[String] = None,
