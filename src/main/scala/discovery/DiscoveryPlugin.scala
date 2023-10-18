@@ -71,8 +71,8 @@ object DiscoveryPlugin extends AutoPlugin {
     }
   )
 
-  def mkSchema(name: String, schema: Schema): List[CaseClass] = {
-    type F[A] = Writer[List[CaseClass], A]
+  def mkSchema(name: String, schema: Schema): List[GeneratedType] = {
+    type F[A] = Writer[List[GeneratedType], A]
     Traverse[List]
       .traverse[F, (String, Schema), Parameter](schema.properties.toList.flatMap(_.toList)) {
         case (propertyName, property) =>
@@ -85,13 +85,13 @@ object DiscoveryPlugin extends AutoPlugin {
   def mkProperty(
       parentName: String,
       name: String,
-      property: Schema): Writer[List[CaseClass], Parameter] =
+      property: Schema): Writer[List[GeneratedType], Parameter] =
     mkPropertyType(parentName, name, property).map(t => Parameter(name, t, required = false))
 
   def mkPropertyType(
       parentName: String,
       name: String,
-      property: Schema): Writer[List[CaseClass], ParamType] = {
+      property: Schema): Writer[List[GeneratedType], ParamType] = {
 
     val primitive = property.format
       .collect {
@@ -105,15 +105,15 @@ object DiscoveryPlugin extends AutoPlugin {
         case "double" => ParamType.simple("Double")
         case "byte" => ParamType.importedType("_root_.scodec.bits.ByteVector")
       }
-      .orElse(property.`enum`.map(enums =>
-        ParamType.enumType(s"${parentName}.${inflector.capitalize(name)}", enums)))
-      .orElse(property.`type`.collect {
+      /*.orElse(property.`enum`.map(enums =>
+        ParamType.enumType(s"${parentName}.${inflector.capitalize(name)}", enums)))*/
+      .orElse(property.`type`.filter(_ => property.`enum`.isEmpty).collect {
         case "string" => ParamType.simple("String")
         case "boolean" => ParamType.simple("Boolean")
         case "integer" => ParamType.simple("Int")
         case "number" => ParamType.simple("Double")
       })
-      .map(Writer(List.empty[CaseClass], _))
+      .map(Writer(List.empty[GeneratedType], _))
 
     val array = property.`type`.collect { case "array" =>
       property.items.map { p =>
@@ -129,7 +129,7 @@ object DiscoveryPlugin extends AutoPlugin {
         case "JsonObject" => ParamType.importedType("_root_.io.circe.JsonObject")
         case x => ParamType.simple(x)
       }
-      .map(Writer(List.empty[CaseClass], _))
+      .map(Writer(List.empty[GeneratedType], _))
 
     val obj = property.`type`.collect { case "object" =>
       property.properties
@@ -145,14 +145,20 @@ object DiscoveryPlugin extends AutoPlugin {
             ParamType.simple(s"Map[String, ${t.name}]")) // todo: need collectionType here
         })
         .getOrElse(
-          Writer(List.empty[CaseClass], ParamType.importedType("_root_.io.circe.JsonObject")))
+          Writer(List.empty[GeneratedType], ParamType.importedType("_root_.io.circe.JsonObject")))
+    }
+
+    val enumType: Option[Writer[List[GeneratedType], ParamType]] = property.`enum`.map { enums =>
+      val typeName = s"$parentName${name.capitalize}"
+      Writer(EnumType(typeName, enums) :: Nil, ParamType.simple(typeName))
     }
 
     primitive
+      .orElse(enumType)
       .orElse(ref)
       .orElse(array)
       .orElse(obj)
-      .getOrElse(Writer(Nil, ParamType.importedType("_root_.io.circe.Json"): ParamType))
+      .getOrElse(Writer(List.empty[GeneratedType], ParamType.importedType("_root_.io.circe.Json")))
   }
 
   def jsonInstances(packageName: String) = {
