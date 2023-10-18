@@ -59,10 +59,10 @@ case class CaseClass(
       case ImportedType(fqcn, _) => fqcn :: imports
       case _ => imports
     }
-    parameters
+    ("JsonInstances._" :: (parameters
       .flatMap(p => go(p.`type`, Nil))
       .distinct
-      .reverse
+      .reverse))
       .map("import " + _)
   }
   private def lit(s: String) = "\"" + s + "\""
