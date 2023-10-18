@@ -10,7 +10,7 @@ object Codegen {
     def render =
       s"""|package $pkg
           |
-          |${imports.mkString("\n")}
+          |${imports.map("import " + _).mkString("\n")}
           |
           |$body
           |""".stripMargin
@@ -123,7 +123,9 @@ object Codegen {
 
     val enumType: Option[Writer[List[GeneratedType], ParamType]] = property.`enum`.map { enums =>
       val typeName = s"$parentName${name.capitalize}"
-      Writer(EnumType(typeName, enums) :: Nil, ParamType.simple(typeName))
+      Writer(
+        EnumType(typeName, enums, property.enumDescriptions.getOrElse(Nil)) :: Nil,
+        ParamType.simple(typeName))
     }
 
     primitive

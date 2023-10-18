@@ -22,14 +22,19 @@ sealed trait GeneratedType {
   def imports: List[String]
 }
 
-case class EnumType(name: String, cases: List[String]) extends GeneratedType {
+case class EnumType(name: String, cases: List[String], descriptions: List[String])
+    extends GeneratedType {
 
   override def imports: List[String] = Nil
 
   override def toString = {
     def toObjectName(_case: String) = _case.toUpperCase.replaceAll("\\W", "_")
     def objects = cases
-      .map(c => s"""  case object ${toObjectName(c)} extends $name("$c")""")
+      .zip(descriptions)
+      .map { case (c, description) =>
+        s"""  // $description
+           |  case object ${toObjectName(c)} extends $name("$c")""".stripMargin
+      }
       .mkString("\n")
     val values = cases.map(toObjectName).mkString("List(", ", ", ")")
 
@@ -59,11 +64,10 @@ case class CaseClass(
       case ImportedType(fqcn, _) => fqcn :: imports
       case _ => imports
     }
-    ("JsonInstances._" :: (parameters
+    "JsonInstances._" :: parameters
       .flatMap(p => go(p.`type`, Nil))
       .distinct
-      .reverse))
-      .map("import " + _)
+      .reverse
   }
   private def lit(s: String) = "\"" + s + "\""
 

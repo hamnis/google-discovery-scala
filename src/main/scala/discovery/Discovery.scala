@@ -9,4 +9,6 @@ case class Schema(
     properties: Option[Map[String, Schema]] = None,
     additionalProperties: Option[Schema] = None,
     items: Option[Schema] = None,
-    `enum`: Option[List[String]] = None)
+    `enum`: Option[List[String]] = None,
+    enumDescriptions: Option[List[String]] = None
+)
