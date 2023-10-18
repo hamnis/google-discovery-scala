@@ -22,7 +22,7 @@ class CodegenTest extends munit.FunSuite {
                      |
                      |object Person {
                      |
-                     |  implicit lazy val codec: _root_.io.circe.Codec[Person] = _root_.io.circe.generic.semiauto.deriveCodec[Person]
+                     |  implicit lazy val codec: _root_.io.circe.Codec[Person] = _root_.io.circe.Codec.forProduct2("name", "age")(Person.apply)(x => (x.name, x.age))
                      |}
                      |""".stripMargin
 

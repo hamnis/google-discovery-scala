@@ -7,8 +7,6 @@ sealed trait ParamType extends Product with Serializable {
 object ParamType {
   def simple(in: String): ParamType = SimpleType(in)
   def importedType(in: String): ParamType = ImportedType(in, in.substring(in.lastIndexOf('.') + 1))
-  // def enumType(name: String, cases: List[String]): ParamType =
-  //  EnumType(name, name.substring(name.lastIndexOf('.') + 1), cases)
 
   def list(typ: ParamType): ParamType = ListType(typ)
 }
@@ -35,7 +33,7 @@ case class EnumType(name: String, cases: List[String]) extends GeneratedType {
       .mkString("\n")
     val values = cases.map(toObjectName).mkString("List(", ", ", ")")
 
-    s"""sealed abstract class $name(val value: String)
+    s"""sealed abstract class $name(val value: String) extends Product with Serializable
        |object $name {
        |
        |$objects
@@ -67,22 +65,35 @@ case class CaseClass(
       .reverse
       .map("import " + _)
   }
+  private def lit(s: String) = "\"" + s + "\""
 
-  /*
-  private def enums = {
-    def go(param: ParamType, enums: List[EnumType]): List[EnumType] = param match {
-      case ListType(elemType) => go(elemType, enums)
-      case e: EnumType => e :: enums
-      case _ => enums
-    }
-    parameters
-      .flatMap(p => go(p.`type`, Nil))
-      .distinct
-      .reverse
-      .map(_.toString)
-      .mkString("\n")
+  def encoderInstance = {
+    val asVector = parameters.toVector
+    val instance =
+      asVector.map(p => s"${lit(p.name)} -> x.${Sanitize(p.name)}.asJson").mkString(",\n    ")
+
+    s"""Encoder.instance{ x =>
+       |  import io.circe.syntax._
+       |
+       |  io.circe.Json.obj(
+       |    $instance
+       |  )
+       |}""".stripMargin
   }
-   */
+
+  def decoderInstance = {
+    val asVector = parameters.toVector
+    val cases = asVector.zipWithIndex
+      .map { case (p, idx) => s"""v$idx <- c.get[${p.asType}](${lit(p.name)})""" }
+      .mkString("\n    ")
+    val fields = asVector.zipWithIndex.map { case (_, idx) => s"v$idx" }.mkString(",")
+
+    s"""|Decoder.instance{ c =>
+        |for {
+        |  $cases
+        | } yield $name($fields)
+        |}""".stripMargin
+  }
 
   override def toString: String = {
     val name = Sanitize(this.name)
@@ -91,7 +102,9 @@ case class CaseClass(
         |)
         |
         |object $name {
-        |  implicit lazy val codec: _root_.io.circe.Codec[$name] = _root_.io.circe.generic.semiauto.deriveCodec[$name]
+        |
+        |  implicit val encoder: _root_.io.circe.Encoder[$name] = _root_.io.circe.$encoderInstance
+        |  implicit val decoder: _root_.io.circe.Decoder[$name] = _root_.io.circe.$decoderInstance
         |}
         |""".stripMargin
   }
@@ -102,11 +115,13 @@ case class Parameter(
     `type`: ParamType,
     required: Boolean
 ) {
+  def asType = if (required) s"${`type`.name}" else s"Option[${`type`.name}]"
+
   override def toString: String =
     if (required)
-      s"${Sanitize(name)}: ${`type`.name}"
+      s"${Sanitize(name)}: $asType"
     else
-      s"${Sanitize(name)}: Option[${`type`.name}] = None"
+      s"${Sanitize(name)}: $asType = None"
 }
 
 object Sanitize {
