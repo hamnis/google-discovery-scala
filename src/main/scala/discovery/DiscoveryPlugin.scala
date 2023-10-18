@@ -1,7 +1,6 @@
 package discovery
 
 import io.circe.*
-import io.circe.generic.auto.*
 import sbt.Keys.*
 import sbt.*
 import sbt.nio.Keys.*

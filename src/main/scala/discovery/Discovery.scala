@@ -1,6 +1,13 @@
 package discovery
 
+import io.circe.Decoder
+import io.circe.generic.semiauto.*
+
 case class Discovery(schemas: Map[String, Schema], revision: String)
+object Discovery {
+  implicit val decoder: Decoder[Discovery] = deriveDecoder
+}
+
 case class Schema(
     description: Option[String] = None,
     `type`: Option[String] = None,
@@ -12,3 +19,7 @@ case class Schema(
     `enum`: Option[List[String]] = None,
     enumDescriptions: Option[List[String]] = None
 )
+
+object Schema {
+  implicit val decoder: Decoder[Schema] = deriveDecoder
+}
