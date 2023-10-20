@@ -24,8 +24,14 @@ object Codegen {
     }
   }
 
+  def surroundWith(left: String, right: String)(s: String): String = left + s + right
+  def surroundWith(both: String)(s: String): String = surroundWith(both, both)(s)
+  def lit(s: String): String = surroundWith("\"")(s)
+  def interpolate(prefix: String, s: String): String = prefix + surroundWith("\"")(s)
+
   def generateFromDiscovery(packageName: String, discovery: Discovery) = {
     val instances = Codegen.jsonInstances(packageName)
+    Client.clientsFrom(discovery).foreach(x => println(x.toCode))
 
     val models = discovery.schemas
       .filterKeys(!Set("JsonObject", "JsonValue").contains(_))
@@ -78,8 +84,6 @@ object Codegen {
         case "double" => ParamType.simple("Double")
         case "byte" => ParamType.importedType("_root_.scodec.bits.ByteVector")
       }
-      /*.orElse(property.`enum`.map(enums =>
-        ParamType.enumType(s"${parentName}.${inflector.capitalize(name)}", enums)))*/
       .orElse(property.`type`.filter(_ => property.`enum`.isEmpty).collect {
         case "string" => ParamType.simple("String")
         case "boolean" => ParamType.simple("Boolean")
