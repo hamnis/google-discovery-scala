@@ -1,18 +1,20 @@
 package discovery
 
 import org.http4s.{Method, Uri}
+import org.typelevel.paiges.Doc
 
 case class Client(name: String, baseUri: Uri, methods: List[Client.ResolvedInvocation]) {
   def toCode = {
-    val body =
-      methods
-        .map(_.toCode(baseUri.renderString)())
-        .mkString("\n")
+    val definition = Doc.text(s"class ${name}[F: Concurrent](client: Client[F]) ") +
+      Docs.blocks(
+        List(
+          Docs.assigment(
+            Doc.text("val baseUri"),
+            Docs.interpolate("uri", Doc.text(baseUri.renderString)) + Doc.hardLine)
+        ) ++ methods.map(_.toCode + Doc.hardLine)
+      )
 
-    s"""|class $name[F: Concurrent](client: Client[F]) {
-        |  $body
-        |}
-        |""".stripMargin
+    definition.render(80)
   }
 }
 
@@ -38,10 +40,9 @@ object Client {
             Method.fromString(invocation.httpMethod).right.get,
             Template(
               invocation.path,
-              invocation.parameters.parameters
-                .filter(_._2.location == "path")
-                .map { case (pName, p) => mkParameter(pName, p) }
-                .toList),
+              invocation.parameters.order.flatMap(p =>
+                invocation.parameters.parameters.get(p).map(mkParameter(p, _)))
+            ),
             invocation.request.flatMap(s => s.$ref).flatMap(resolveTypes.get),
             invocation.response.flatMap(s => s.$ref).flatMap(resolveTypes.get)
           )
@@ -62,22 +63,39 @@ object Client {
       requestType: Option[ParamType],
       responseType: Option[ParamType]
   ) {
-    def toCode(baseUri: String)(level: Int = 4) = {
-      val ident = " " * level
-      val bodyIdent = ident + (" " * 2)
-      val inputParam = requestType.map(t => s"(input: ${t.name})").getOrElse("")
-      val returnType = responseType.map(p => s"Option[${p.name}]").getOrElse("Status")
+    def toCode = {
+      val left = Doc.text(s"def ${name}(") + Doc.hardLine
+      val params = template.paramsAsDoc + Doc.hardLine + Docs.rparens
+      val inputParam = requestType
+        .map(pt =>
+          (Doc.text("input:") + Doc.line + Doc.text(pt.name))
+            .tightBracketBy(Docs.lparens + Doc.lineOrEmpty, Doc.lineOrEmpty + Docs.rparens))
+        .getOrElse(Doc.empty)
+      val returnType =
+        responseType.map(p => Doc.text(s"Option[${p.name}]")).getOrElse(Doc.text("Status"))
 
-      val withRequestBody = if (requestType.isDefined) ".withEntity(input)" else ""
-      val requestInstance =
-        s"Request[F](method = Method.${method}, uri = ${template.toCode(baseUri)})$withRequestBody"
-      val clientCall = responseType.map(t => s"expectOption[${t.name}]").getOrElse("status")
+      val request = {
+        val left = Doc.text("Request[F](")
+        val meth = Docs.assigment(Doc.text("method"), Doc.text(s"Method.${method.name}"))
+        val uri = Docs.assigment(Doc.text("uri"), template.toCodeDoc)
+        val withBody = if (requestType.isDefined) Doc.text(".withEntity(input)") else Doc.empty
+        Doc
+          .intercalate(Doc.comma + Doc.lineOrSpace, List(meth, uri))
+          .tightBracketBy(
+            left,
+            Docs.rparens
+          ) + withBody
+      }
+      val clientCall = responseType
+        .map(t =>
+          Doc
+            .text(t.name)
+            .tightBracketBy(Doc.text("client.expectOption["), Docs.rbracket))
+        .getOrElse(Doc.text("status")) + Docs.lparens
 
-      s"""${ident}def $name(
-         |${template.paramsAsString}
-         |)$inputParam: F[$returnType] = {
-         |${bodyIdent}client.$clientCall($requestInstance)
-         |}""".stripMargin
+      Docs.assigment(
+        Docs.ascribed(left + params + inputParam, returnType),
+        Docs.block(request.tightBracketBy(clientCall, Docs.rparens)))
     }
   }
 }

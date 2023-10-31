@@ -76,10 +76,15 @@ object EnumType {
           rparens
         )
 
-      val fromString =
-        Doc.text(s"""def fromString(input: String): Either[String, ${enumType.name}]""") +
-          Doc.text(" = values.find(_.value == input)") +
-          Doc.text(s""".toRight(s"'$$input' was not a valid value for ${enumType.name}")""")
+      val fromString = {
+        val msg = Doc
+          .text(s"'$$input' was not a valid value for ${enumType.name}")
+          .tightBracketBy(Doc.text("s") + quote, quote)
+        Doc.text(
+          s"""def fromString(input: String): Either[String, ${enumType.name}] =""") + Doc.line +
+          Doc.text("values") + Doc.lineOrEmpty + Doc.text(".find(_.value == input)") +
+          msg.tightBracketBy(Doc.lineOrEmpty + Doc.text(".toRight("), Doc.lineOrEmpty + rparens)
+      }
 
       val decoderInstance =
         TypeClassInstance(
@@ -214,20 +219,12 @@ case class Parameter(
     required: Boolean
 ) {
   def asType = if (required) s"${`type`.name}" else s"Option[${`type`.name}]"
-
-  /*override def toString: String = {
-    val comment = description.fold("")("// " + _ + "\n")
-    if (required)
-      s"$comment${Sanitize(name)}: $asType"
-    else
-      s"$comment${Sanitize(name)}: $asType = None"
-  }*/
 }
 
 object Parameter {
   implicit val renderer: Document[Parameter] = Document.instance { p =>
     val comment = p.description.fold(Doc.empty)(c => Doc.text("// ") + Doc.text(c) + Doc.hardLine)
-    comment + Doc.text(Sanitize(p.name)) + Doc.char(':') + Doc.space + Doc.text(p.asType)
+    comment + Docs.ascribed(Doc.text(Sanitize(p.name)), Doc.text(p.asType))
   }
 }
 

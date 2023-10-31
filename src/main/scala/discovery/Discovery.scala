@@ -49,7 +49,7 @@ object HttpParameters {
   implicit val decoder: Decoder[HttpParameters] = Decoder.instance(c =>
     for {
       map <- c.as[Map[String, HttpParameter]]
-      order <- c.get[Option[List[String]]]("parameterOrder")
+      order <- c.up.get[Option[List[String]]]("parameterOrder")
     } yield HttpParameters(map, order.getOrElse(Nil)))
 }
 

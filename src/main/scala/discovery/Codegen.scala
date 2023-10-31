@@ -24,10 +24,10 @@ object Codegen {
     }
   }
 
-  def surroundWith(left: String, right: String)(s: String): String = left + s + right
-  def surroundWith(both: String)(s: String): String = surroundWith(both, both)(s)
-  def lit(s: String): String = surroundWith("\"")(s)
-  def interpolate(prefix: String, s: String): String = prefix + surroundWith("\"")(s)
+  // def surroundWith(left: String, right: String)(s: String): String = left + s + right
+  // def surroundWith(both: String)(s: String): String = surroundWith(both, both)(s)
+  // def lit(s: String): String = surroundWith("\"")(s)
+  // def interpolate(prefix: String, s: String): String = prefix + surroundWith("\"")(s)
 
   def generateFromDiscovery(packageName: String, discovery: Discovery) = {
     val instances = Codegen.jsonInstances(packageName)
