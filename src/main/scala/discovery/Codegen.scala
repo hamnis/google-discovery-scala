@@ -27,7 +27,15 @@ object Codegen {
 
   def generateFromDiscovery(packageName: String, discovery: Discovery) = {
     val instances = Codegen.jsonInstances(packageName)
-    // Client.clientsFrom(discovery).foreach(x => println(x.toCode))
+    val clients = Client
+      .clientsFrom(discovery)
+      .map(c =>
+        Codegen.SourceFile(
+          packageName,
+          c.name,
+          c.imports,
+          c.toCode
+        ))
 
     val models = discovery.schemas
       .filterKeys(!Set("JsonObject", "JsonValue").contains(_))
@@ -43,7 +51,7 @@ object Codegen {
           generatedType.doc.render(80)
         )
       }
-    instances :: models
+    instances :: models ::: clients
   }
 
   def mkSchema(name: String, schema: Schema): List[GeneratedType] = {

@@ -4,10 +4,32 @@ import org.http4s.{Method, Uri}
 import org.typelevel.paiges.Doc
 
 case class Client(name: String, baseUri: Uri, methods: List[Client.ResolvedInvocation]) {
+  def imports =
+    List(
+      "cats.effect.Concurrent",
+      "org.http4s._",
+      "org.http4s.implicits._",
+      "org.http4s.circe._",
+      "org.http4s.client.Client",
+      "io.circe.{Encoder, Decoder}"
+    )
+
   def toCode = {
-    val definition = Doc.text(s"class ${name}[F: Concurrent](client: Client[F]) ") +
+    val definition = Doc.text(s"class ${name}[F[_]: Concurrent](client: Client[F]) ") +
       Code.blocks(
         List(
+          Code.assigment(
+            Code.ascribed(
+              Doc.text("private implicit def entityEncoder[A: Encoder]"),
+              Doc.text("EntityEncoder[F, A]")),
+            Doc.text("jsonEncoderOf[F, A]")
+          ),
+          Code.assigment(
+            Code.ascribed(
+              Doc.text("private implicit def entityDecoder[A: Decoder]"),
+              Doc.text("EntityDecoder[F, A]")),
+            Doc.text("jsonOf[F, A]")
+          ),
           Code.assigment(
             Doc.text("val baseUri"),
             Code.interpolate("uri", Doc.text(baseUri.renderString)) + Doc.hardLine)
@@ -72,7 +94,9 @@ object Client {
             .tightBracketBy(Code.lparens + Doc.lineOrEmpty, Doc.lineOrEmpty + Code.rparens))
         .getOrElse(Doc.empty)
       val returnType =
-        responseType.map(p => Doc.text(s"Option[${p.name}]")).getOrElse(Doc.text("Status"))
+        Doc.text("F[") + responseType
+          .map(p => ParamType.option(p).asDoc)
+          .getOrElse(Doc.text("Status")) + Code.rbracket
 
       val request = {
         val left = Doc.text("Request[F](")
@@ -91,7 +115,7 @@ object Client {
           Doc
             .text(t.name)
             .tightBracketBy(Doc.text("client.expectOption["), Code.rbracket))
-        .getOrElse(Doc.text("status")) + Code.lparens
+        .getOrElse(Doc.text("client.status")) + Code.lparens
 
       Code.assigment(
         Code.ascribed(left + params + inputParam, returnType),
