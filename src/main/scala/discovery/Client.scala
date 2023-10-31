@@ -86,27 +86,34 @@ object Client {
       responseType: Option[ParamType]
   ) {
     def toCode = {
-      val left = Doc.text(s"def ${name}(") + Doc.hardLine
-      val params = template.paramsAsDoc + Doc.hardLine + Code.rparens
-      val inputParam = requestType
-        .map(pt =>
-          (Doc.text("input:") + Doc.line + Doc.text(pt.name))
-            .tightBracketBy(Code.lparens + Doc.lineOrEmpty, Doc.lineOrEmpty + Code.rparens))
-        .getOrElse(Doc.empty)
+      val assigned = {
+        val left = Doc.text(s"def ${name}(") + Doc.hardLine
+        val params = template.paramsAsDoc + Doc.hardLine + Code.rparens
+        val inputParam = requestType
+          .map(pt =>
+            (Doc.text("input:") + Doc.line + Doc.text(pt.name))
+              .tightBracketBy(Code.lparens + Doc.lineOrEmpty, Doc.lineOrEmpty + Code.rparens))
+          .getOrElse(Doc.empty)
+
+        left + params + inputParam
+      }
+
       val returnType =
-        Doc.text("F[") + responseType
-          .map(p => ParamType.option(p).asDoc)
-          .getOrElse(Doc.text("Status")) + Code.rbracket
+        TypeConstructor(
+          SimpleType("F"),
+          responseType.map(ParamType.option).getOrElse(SimpleType("Status"))).asDoc
 
       val request = {
-        val left = Doc.text("Request[F](")
-        val meth = Code.assigment(Doc.text("method"), Doc.text(s"Method.${method.name}"))
-        val uri = Code.assigment(Doc.text("uri"), template.toCodeDoc)
         val withBody = if (requestType.isDefined) Doc.text(".withEntity(input)") else Doc.empty
         Doc
-          .intercalate(Doc.comma + Doc.lineOrSpace, List(meth, uri))
+          .intercalate(
+            Doc.comma + Doc.lineOrSpace,
+            List(
+              Code.assigment(Doc.text("method"), Doc.text(s"Method.${method.name}")),
+              Code.assigment(Doc.text("uri"), template.toCodeDoc))
+          )
           .tightBracketBy(
-            left,
+            Doc.text("Request[F]("),
             Code.rparens
           ) + withBody
       }
@@ -118,7 +125,7 @@ object Client {
         .getOrElse(Doc.text("client.status")) + Code.lparens
 
       Code.assigment(
-        Code.ascribed(left + params + inputParam, returnType),
+        Code.ascribed(assigned, returnType),
         Code.block(request.tightBracketBy(clientCall, Code.rparens)))
     }
   }
