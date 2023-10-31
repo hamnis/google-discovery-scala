@@ -91,7 +91,8 @@ object Client {
         val params = template.paramsAsDoc + Doc.hardLine + Code.rparens
         val inputParam = requestType
           .map(pt =>
-            (Doc.text("input:") + Doc.line + Doc.text(pt.name))
+            Code
+              .ascribed(Doc.text("input"), pt.asDoc)
               .tightBracketBy(Code.lparens + Doc.lineOrEmpty, Doc.lineOrEmpty + Code.rparens))
           .getOrElse(Doc.empty)
 
