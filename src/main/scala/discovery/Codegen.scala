@@ -3,6 +3,7 @@ package discovery
 import cats.Traverse
 import cats.data.Writer
 import sbt._
+import org.typelevel.paiges.Document.ops._
 
 object Codegen {
   case class SourceFile(pkg: String, name: String, imports: List[String], body: String) {
@@ -24,14 +25,9 @@ object Codegen {
     }
   }
 
-  // def surroundWith(left: String, right: String)(s: String): String = left + s + right
-  // def surroundWith(both: String)(s: String): String = surroundWith(both, both)(s)
-  // def lit(s: String): String = surroundWith("\"")(s)
-  // def interpolate(prefix: String, s: String): String = prefix + surroundWith("\"")(s)
-
   def generateFromDiscovery(packageName: String, discovery: Discovery) = {
     val instances = Codegen.jsonInstances(packageName)
-    Client.clientsFrom(discovery).foreach(x => println(x.toCode))
+    // Client.clientsFrom(discovery).foreach(x => println(x.toCode))
 
     val models = discovery.schemas
       .filterKeys(!Set("JsonObject", "JsonValue").contains(_))
@@ -44,7 +40,8 @@ object Codegen {
           packageName,
           generatedType.name,
           generatedType.imports,
-          generatedType.toString)
+          generatedType.doc.render(80)
+        )
       }
     instances :: models
   }

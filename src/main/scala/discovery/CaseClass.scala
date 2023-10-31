@@ -30,6 +30,14 @@ sealed trait GeneratedType {
   def imports: List[String]
 }
 
+object GeneratedType {
+  implicit val renderer: Document[GeneratedType] = Document.instance {
+    case cc: CaseClass => CaseClass.renderer.document(cc)
+    case e: EnumType => EnumType.renderer.document(e)
+  }
+
+}
+
 case class TypeClassInstance(name: String, `type`: ParamType, body: Doc)
 object TypeClassInstance {
   implicit val renderer: Document[TypeClassInstance] = Document.instance(tci =>
@@ -140,11 +148,10 @@ object CaseClass {
   implicit val renderer: Document[CaseClass] =
     Document.instance { cc =>
       def render: Doc = {
-        val prefix = Doc.text("case class ") + Doc.text(cc.name) + lparens
-        val suffix = rparens
+        val prefix = Doc.text(s"case class ${cc.name}(")
         val types = cc.parameters.map(p => p.doc)
         val body = Doc.intercalate(Doc.comma + Doc.line, types)
-        body.tightBracketBy(prefix, suffix)
+        body.tightBracketBy(prefix, rparens)
       }
 
       def renderCompanion: Doc = {
