@@ -4,26 +4,34 @@ import org.typelevel.paiges.{Doc, Document}
 import org.typelevel.paiges.Document.ops._
 
 sealed trait Type extends Product with Serializable {
-  def name: String
-  def asDoc: Doc = Doc.text(name)
+  def asDoc: Doc
 }
 
 object Type {
-  def simple(in: String): Type = Simple(in)
+  def apply(in: String): Type = Simple(in)
   def importedType(in: String): Type = Imported(in, in.substring(in.lastIndexOf('.') + 1))
+  def constructor(outer: Type, inner: Type*): Type = Constructor(outer, inner.toList)
 
-  def list(typ: Type): Type = Constructor(Simple("List"), typ)
-  def option(typ: Type): Type = Constructor(Simple("Option"), typ)
-  def encoder(typ: Type): Type = Constructor(Simple("Encoder"), typ)
-  def decoder(typ: Type): Type = Constructor(Simple("Decoder"), typ)
+  def list(typ: Type): Type = constructor(apply("List"), typ)
+  def option(typ: Type): Type = constructor(apply("Option"), typ)
+  def map(left: Type, right: Type): Type = constructor(apply("Map"), left, right)
+  def encoder(typ: Type): Type = constructor(apply("Encoder"), typ)
+  def decoder(typ: Type): Type = constructor(apply("Decoder"), typ)
 
-  case class Simple(name: String) extends Type
-
-  case class Constructor(outer: Type, elemType: Type) extends Type {
-    override def name: String = s"${outer.name}[${elemType.name}]"
+  case class Simple(name: String) extends Type {
+    val asDoc = Doc.text(name)
   }
 
-  case class Imported(fqcn: String, name: String) extends Type
+  case class Constructor(outer: Type, elemTypes: List[Type]) extends Type {
+
+    override def asDoc: Doc = Doc
+      .intercalate(Doc.comma + Doc.lineOrSpace, elemTypes.map(_.asDoc))
+      .tightBracketBy(outer.asDoc + Code.lbracket, Code.rbracket)
+  }
+
+  case class Imported(qualified: String, name: String) extends Type {
+    def asDoc = Doc.text(name)
+  }
 }
 
 sealed trait GeneratedType {
@@ -88,8 +96,8 @@ object EnumType {
         Code.Def(
           "fromString",
           Nil,
-          List(Parameter("input", Type.simple("String"), None, required = true)),
-          Some(Type.simple(s"Either[String, ${enumType.name}]")), {
+          List(Parameter("input", Type("String"), None, required = true)),
+          Some(Type.constructor(Type("Either"), Type("String"), Type(enumType.name))), {
             val msg = Code.interpolate(
               "s",
               Doc.text(s"'$$input' was not a valid value for ${enumType.name}"))
@@ -103,12 +111,12 @@ object EnumType {
       val decoderInstance =
         TypeClassInstance(
           "decoder",
-          Type.decoder(Type.simple(enumType.name)),
+          Type.decoder(Type(enumType.name)),
           Doc.text("Decoder[String].emap(s => fromString(s))"))
       val encoderInstance =
         TypeClassInstance(
           "encoder",
-          Type.encoder(Type.simple(enumType.name)),
+          Type.encoder(Type(enumType.name)),
           Doc.text("Encoder[String].contramap(_.value)"))
 
       val body =
@@ -130,7 +138,8 @@ case class CaseClass(
 
   def imports = {
     def go(param: Type, imports: List[String]): List[String] = param match {
-      case Type.Constructor(outer, elemType) => go(outer, imports) ++ go(elemType, imports)
+      case Type.Constructor(outer, elemTypes) =>
+        go(outer, elemTypes.flatMap(go(_, imports)))
       case Type.Imported(fqcn, _) => fqcn :: imports
       case _ => imports
     }
@@ -169,7 +178,7 @@ object CaseClass {
 
         TypeClassInstance(
           "encoder",
-          Type.encoder(Type.simple(cc.name)),
+          Type.encoder(Type(cc.name)),
           obj.tightBracketBy(Doc.text("Encoder.instance{ x =>"), Code.rbrace)
         )
       }
@@ -197,7 +206,7 @@ object CaseClass {
 
         TypeClassInstance(
           "decoder",
-          Type.decoder(Type.simple(cc.name)),
+          Type.decoder(Type(cc.name)),
           forcomp.tightBracketBy(
             Doc.text("Decoder.instance{ c => "),
             Doc.hardLine + Code.rbrace

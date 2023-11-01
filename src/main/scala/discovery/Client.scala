@@ -45,14 +45,14 @@ object Client {
     val resources = discovery.resources.getOrElse(Resources(Map.empty)).resources
     def mkParameter(name: String, param: HttpParameter) = {
       val typ = param.`type` match {
-        case "integer" => Type.simple("Int")
-        case "boolean" => Type.simple("Boolean")
-        case _ => Type.simple("String")
+        case "integer" => Type("Int")
+        case "boolean" => Type("Boolean")
+        case _ => Type("String")
       }
       Parameter(name, typ, Some(param.description), param.required.getOrElse(false))
     }
 
-    val resolveTypes = discovery.schemas.keys.map(typ => typ -> Type.simple(typ)).toMap
+    val resolveTypes = discovery.schemas.keys.map(typ => typ -> Type.apply(typ)).toMap
 
     resources.flatMap { case (resourceName, resource) =>
       resource.methods.map { case (name, invocations: Invocations) =>
@@ -101,9 +101,7 @@ object Client {
 
       val returnType =
         Type
-          .Constructor(
-            Type.simple("F"),
-            responseType.map(Type.option).getOrElse(Type.simple("Status")))
+          .constructor(Type("F"), responseType.map(Type.option).getOrElse(Type.apply("Status")))
           .asDoc
 
       val request = {
@@ -122,8 +120,7 @@ object Client {
       }
       val clientCall = responseType
         .map(t =>
-          Doc
-            .text(t.name)
+          t.asDoc
             .tightBracketBy(Doc.text("client.expectOption["), Code.rbracket))
         .getOrElse(Doc.text("client.status")) + Code.lparens
 

@@ -7,8 +7,8 @@ class CodegenTest extends munit.FunSuite {
     val cc = CaseClass(
       "Person",
       List(
-        Parameter("name", Type.simple("String"), None, true),
-        Parameter("age", Type.simple("Int"), None, true)))
+        Parameter("name", Type("String"), None, true),
+        Parameter("age", Type("Int"), None, true)))
 
     val ccAsString = CaseClass.renderer.document(cc).render(80)
     val expected = """case class Person(name: String, age: Int)
