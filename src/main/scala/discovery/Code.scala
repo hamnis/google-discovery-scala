@@ -34,12 +34,19 @@ object Code {
     block(expr)
   }
 
+  def paramsToDoc(p: List[Parameter]) =
+    if (p.nonEmpty)
+      Doc
+        .intercalate(Doc.comma + Doc.lineOrSpace, p.map(_.doc))
+        .tightBracketBy(Code.lparens, Code.rparens)
+    else Doc.empty
+
   def Def(
-           name: String,
-           tparams: List[Type],
-           params: List[Parameter],
-           returnType: Option[Type],
-           body: Doc) = {
+      name: String,
+      tparams: List[Type],
+      params: List[Parameter],
+      returnType: Option[Type],
+      body: Doc) = {
     val defn = Doc.text(s"def ") + term(name)
     val appliedTParams =
       if (tparams.nonEmpty)
@@ -48,12 +55,7 @@ object Code {
           .tightBracketBy(Code.lbracket, Code.rbracket)
       else Doc.empty
 
-    val appliedParams =
-      if (params.nonEmpty)
-        Doc
-          .intercalate(Doc.comma + Doc.lineOrSpace, params.map(_.doc))
-          .tightBracketBy(Code.lparens, Code.rparens)
-      else Doc.empty
+    val appliedParams = paramsToDoc(params)
 
     val applied = defn + appliedTParams + appliedParams
     assigment(
@@ -83,7 +85,7 @@ object Code {
 
     val yieldDoc = Doc.hardLine + rbrace + Doc.text(" yield ") + yieldBlock
 
-    genDoc.tightBracketBy(Doc.text("for {") , yieldDoc)
+    genDoc.tightBracketBy(Doc.text("for {"), yieldDoc)
   }
 
   object Sanitize {

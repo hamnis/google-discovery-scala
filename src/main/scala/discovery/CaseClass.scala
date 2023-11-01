@@ -142,15 +142,13 @@ case class CaseClass(
 }
 
 object CaseClass {
-  import Code.*
 
   implicit val renderer: Document[CaseClass] =
     Document.instance { cc =>
       def render: Doc = {
-        val prefix = Doc.text(s"case class ${cc.name}(")
-        val types = cc.parameters.map(p => p.doc)
-        val body = Doc.intercalate(Doc.comma + Doc.line, types)
-        body.tightBracketBy(prefix, rparens)
+        val prefix = Doc.text(s"case class ${cc.name}")
+        val params = if (cc.parameters.isEmpty) Doc.text("()") else Code.paramsToDoc(cc.parameters)
+        prefix + params
       }
 
       def renderCompanion: Doc = {
@@ -167,12 +165,12 @@ object CaseClass {
                 ":=") + Doc.lineOrSpace + Code
                 .termSelect(Doc.text("x"), Code.term(p.name)))
           )
-          .tightBracketBy(Doc.text("Json.obj("), rparens)
+          .tightBracketBy(Doc.text("Json.obj("), Code.rparens)
 
         TypeClassInstance(
           "encoder",
           Type.encoder(Type.simple(cc.name)),
-          obj.tightBracketBy(Doc.text("Encoder.instance{ x =>"), rbrace)
+          obj.tightBracketBy(Doc.text("Encoder.instance{ x =>"), Code.rbrace)
         )
       }
 
@@ -202,7 +200,7 @@ object CaseClass {
           Type.decoder(Type.simple(cc.name)),
           forcomp.tightBracketBy(
             Doc.text("Decoder.instance{ c => "),
-            Doc.hardLine + rbrace
+            Doc.hardLine + Code.rbrace
           )
         )
       }
