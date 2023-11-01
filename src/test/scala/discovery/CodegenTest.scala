@@ -7,8 +7,8 @@ class CodegenTest extends munit.FunSuite {
     val cc = CaseClass(
       "Person",
       List(
-        Parameter("name", ParamType.simple("String"), None, true),
-        Parameter("age", ParamType.simple("Int"), None, true)))
+        Parameter("name", Type.simple("String"), None, true),
+        Parameter("age", Type.simple("Int"), None, true)))
 
     val ccAsString = CaseClass.renderer.document(cc).render(80)
     val expected = """case class Person(name: String, age: Int)
@@ -19,7 +19,8 @@ class CodegenTest extends munit.FunSuite {
                      |  implicit val decoder: Decoder[Person] = Decoder.instance{ c => for {
                      |      v0 <- c.get[String]("name")
                      |      v1 <- c.get[Int]("age")
-                     |    } yield Person(v0, v1)}
+                     |    } yield Person(v0, v1)
+                     |  }
                      |}
                      |""".stripMargin
 

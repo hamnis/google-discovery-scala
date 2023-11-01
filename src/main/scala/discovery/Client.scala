@@ -45,14 +45,14 @@ object Client {
     val resources = discovery.resources.getOrElse(Resources(Map.empty)).resources
     def mkParameter(name: String, param: HttpParameter) = {
       val typ = param.`type` match {
-        case "integer" => ParamType.simple("Int")
-        case "boolean" => ParamType.simple("Boolean")
-        case _ => ParamType.simple("String")
+        case "integer" => Type.simple("Int")
+        case "boolean" => Type.simple("Boolean")
+        case _ => Type.simple("String")
       }
       Parameter(name, typ, Some(param.description), param.required.getOrElse(false))
     }
 
-    val resolveTypes = discovery.schemas.keys.map(typ => typ -> ParamType.simple(typ)).toMap
+    val resolveTypes = discovery.schemas.keys.map(typ => typ -> Type.simple(typ)).toMap
 
     resources.flatMap { case (resourceName, resource) =>
       resource.methods.map { case (name, invocations: Invocations) =>
@@ -82,8 +82,8 @@ object Client {
       name: String,
       method: Method,
       template: Template,
-      requestType: Option[ParamType],
-      responseType: Option[ParamType]
+      requestType: Option[Type],
+      responseType: Option[Type]
   ) {
     def toCode = {
       val assigned = {
@@ -100,9 +100,11 @@ object Client {
       }
 
       val returnType =
-        TypeConstructor(
-          SimpleType("F"),
-          responseType.map(ParamType.option).getOrElse(SimpleType("Status"))).asDoc
+        Type
+          .Constructor(
+            Type.simple("F"),
+            responseType.map(Type.option).getOrElse(Type.simple("Status")))
+          .asDoc
 
       val request = {
         val withBody = if (requestType.isDefined) Doc.text(".withEntity(input)") else Doc.empty

@@ -3,27 +3,28 @@ package discovery
 import org.typelevel.paiges.{Doc, Document}
 import org.typelevel.paiges.Document.ops._
 
-sealed trait ParamType extends Product with Serializable {
+sealed trait Type extends Product with Serializable {
   def name: String
   def asDoc: Doc = Doc.text(name)
 }
 
-object ParamType {
-  def simple(in: String): ParamType = SimpleType(in)
-  def importedType(in: String): ParamType = ImportedType(in, in.substring(in.lastIndexOf('.') + 1))
+object Type {
+  def simple(in: String): Type = Simple(in)
+  def importedType(in: String): Type = Imported(in, in.substring(in.lastIndexOf('.') + 1))
 
-  def list(typ: ParamType): ParamType = TypeConstructor(SimpleType("List"), typ)
-  def option(typ: ParamType): ParamType = TypeConstructor(SimpleType("Option"), typ)
-  def encoder(typ: ParamType): ParamType = TypeConstructor(SimpleType("Encoder"), typ)
-  def decoder(typ: ParamType): ParamType = TypeConstructor(SimpleType("Decoder"), typ)
+  def list(typ: Type): Type = Constructor(Simple("List"), typ)
+  def option(typ: Type): Type = Constructor(Simple("Option"), typ)
+  def encoder(typ: Type): Type = Constructor(Simple("Encoder"), typ)
+  def decoder(typ: Type): Type = Constructor(Simple("Decoder"), typ)
+
+  case class Simple(name: String) extends Type
+
+  case class Constructor(outer: Type, elemType: Type) extends Type {
+    override def name: String = s"${outer.name}[${elemType.name}]"
+  }
+
+  case class Imported(fqcn: String, name: String) extends Type
 }
-
-case class SimpleType(name: String) extends ParamType
-
-case class TypeConstructor(outer: ParamType, elemType: ParamType) extends ParamType {
-  override def name: String = s"${outer.name}[${elemType.name}]"
-}
-case class ImportedType(fqcn: String, name: String) extends ParamType
 
 sealed trait GeneratedType {
   def name: String
@@ -38,7 +39,7 @@ object GeneratedType {
 
 }
 
-case class TypeClassInstance(name: String, `type`: ParamType, body: Doc)
+case class TypeClassInstance(name: String, `type`: Type, body: Doc)
 object TypeClassInstance {
   implicit val renderer: Document[TypeClassInstance] = Document.instance(tci =>
     Code.assigment(
@@ -58,23 +59,15 @@ object EnumType {
       import Code.*
       def toObjectName(_case: String) = _case.toUpperCase.replaceAll("\\W", "_")
 
-      val postfixClassDecl = Doc.text(" extends Product with Serializable")
-
-      val cls =
-        Doc
-          .text("val value: String")
-          .tightBracketBy(
-            Doc.text("sealed abstract class ") + Doc.text(enumType.name) + lparens,
-            rparens + postfixClassDecl
-          )
+      val cls = Doc.text(
+        s"sealed abstract class ${enumType.name}(val value: String) extends Product with Serializable")
 
       val objects =
         Doc.hardLine + Doc.intercalate(
           Doc.hardLine,
           enumType.cases.zip(enumType.descriptions).map { case (k, v) =>
             val obj =
-              Doc.text("case object ") + Doc.text(toObjectName(k)) + Doc.text(" extends ") + Doc
-                .text(enumType.name) + Doc
+              Doc.text(s"case object ${toObjectName(k)} extends ${enumType.name}") + Doc
                 .text(k)
                 .tightBracketBy(lparens + quote, quote + rparens)
             val comment = Doc.text("// ") + Doc.text(v)
@@ -82,7 +75,7 @@ object EnumType {
           }
         )
 
-      val companionPrefix = Doc.text("object ") + Doc.text(enumType.name) + Doc.space + lbrace
+      val companionPrefix = Doc.text(s"object ${enumType.name} {")
 
       val values = Doc
         .intercalate(Doc.comma + Doc.line, enumType.cases.map(toObjectName).map(Doc.text))
@@ -91,25 +84,31 @@ object EnumType {
           rparens
         )
 
-      val fromString = {
-        val msg = Doc
-          .text(s"'$$input' was not a valid value for ${enumType.name}")
-          .tightBracketBy(Doc.text("s") + quote, quote)
-        Doc.text(
-          s"""def fromString(input: String): Either[String, ${enumType.name}] =""") + Doc.line +
-          Doc.text("values") + Doc.lineOrEmpty + Doc.text(".find(_.value == input)") +
-          msg.tightBracketBy(Doc.lineOrEmpty + Doc.text(".toRight("), Doc.lineOrEmpty + rparens)
-      }
+      val fromString =
+        Code.Def(
+          "fromString",
+          Nil,
+          List(Parameter("input", Type.simple("String"), None, required = true)),
+          Some(Type.simple(s"Either[String, ${enumType.name}]")), {
+            val msg = Code.interpolate(
+              "s",
+              Doc.text(s"'$$input' was not a valid value for ${enumType.name}"))
+            Code.termSelect(
+              Code.termSelect(Code.term("values"), Doc.text("find(_.value == input)")),
+              Code.termApply(Doc.text("toRight"), Nil, msg)
+            )
+          }
+        )
 
       val decoderInstance =
         TypeClassInstance(
           "decoder",
-          ParamType.simple(s"Decoder[${enumType.name}]"),
+          Type.decoder(Type.simple(enumType.name)),
           Doc.text("Decoder[String].emap(s => fromString(s))"))
       val encoderInstance =
         TypeClassInstance(
           "encoder",
-          ParamType.simple(s"Encoder[${enumType.name}]"),
+          Type.encoder(Type.simple(enumType.name)),
           Doc.text("Encoder[String].contramap(_.value)"))
 
       val body =
@@ -130,9 +129,9 @@ case class CaseClass(
 ) extends GeneratedType {
 
   def imports = {
-    def go(param: ParamType, imports: List[String]): List[String] = param match {
-      case TypeConstructor(outer, elemType) => go(outer, imports) ++ go(elemType, imports)
-      case ImportedType(fqcn, _) => fqcn :: imports
+    def go(param: Type, imports: List[String]): List[String] = param match {
+      case Type.Constructor(outer, elemType) => go(outer, imports) ++ go(elemType, imports)
+      case Type.Imported(fqcn, _) => fqcn :: imports
       case _ => imports
     }
     List("JsonInstances._", "io.circe._", "io.circe.syntax._") ::: parameters
@@ -162,51 +161,48 @@ object CaseClass {
       def encoderInstance: TypeClassInstance = {
         val obj = Doc
           .intercalate(
-            Doc.comma + Doc.line,
+            Doc.comma + Doc.lineOrSpace,
             cc.parameters.map(p =>
-              Doc.text(p.name).tightBracketBy(quote, quote) + Doc.line + Doc.text(
-                ":=") + Doc.line + Doc
-                .text("x." + Sanitize(p.name)))
+              Code.literal(Doc.text(p.name)) + Doc.lineOrSpace + Doc.text(
+                ":=") + Doc.lineOrSpace + Code
+                .termSelect(Doc.text("x"), Code.term(p.name)))
           )
           .tightBracketBy(Doc.text("Json.obj("), rparens)
 
         TypeClassInstance(
           "encoder",
-          ParamType.encoder(ParamType.simple(cc.name)),
+          Type.encoder(Type.simple(cc.name)),
           obj.tightBracketBy(Doc.text("Encoder.instance{ x =>"), rbrace)
         )
       }
 
       def decoderInstance = {
-        val withIndex = cc.parameters.toVector.zipWithIndex
-        val cases = Doc.hardLine + Doc.intercalate(
-          Doc.hardLine,
-          withIndex
-            .map { case (p, idx) =>
-              Doc.text(s"v$idx") + Doc.line + Doc.text("<-") + Doc.line + Doc.text(
-                "c.get[") + p.asType + Doc
-                .text("](") + Doc.text(p.name).tightBracketBy(quote, quote) + Doc.text(")")
-            }
-        )
-        val yieldBlock =
-          Doc
-            .intercalate(
-              Doc.comma + Doc.line,
-              withIndex.map { case (_, idx) => Doc.text(s"v$idx") })
-            .tightBracketBy(
-              Doc.hardLine + rbrace + Doc.text(" yield ") + Doc.text(cc.name) + lparens,
-              rparens
-            )
+        val withIndex = cc.parameters.zipWithIndex
 
         val forcomp =
-          cases.tightBracketBy(Doc.text("for {"), yieldBlock)
+          Code.forComprehension(
+            withIndex.map { case (p, idx) =>
+              Doc.text(s"v$idx") -> Code.termApply(
+                Doc.text("c.get"),
+                List(p.actualType),
+                Code
+                  .literal(Doc.text(p.name)))
+            },
+            Code.termApply(
+              Doc.text(cc.name),
+              Nil,
+              Doc
+                .intercalate(
+                  Doc.comma + Doc.lineOrSpace,
+                  withIndex.map { case (_, idx) => Doc.text(s"v$idx") }))
+          )
 
         TypeClassInstance(
           "decoder",
-          ParamType.decoder(ParamType.simple(cc.name)),
+          Type.decoder(Type.simple(cc.name)),
           forcomp.tightBracketBy(
             Doc.text("Decoder.instance{ c => "),
-            rbrace
+            Doc.hardLine + rbrace
           )
         )
       }
@@ -217,16 +213,17 @@ object CaseClass {
 
 case class Parameter(
     name: String,
-    `type`: ParamType,
+    `type`: Type,
     description: Option[String],
     required: Boolean
 ) {
-  def asType = if (required) `type`.asDoc else ParamType.option(`type`).asDoc
+  def actualType = if (required) `type` else Type.option(`type`)
+  def asDoc = actualType.asDoc
 }
 
 object Parameter {
   implicit val renderer: Document[Parameter] = Document.instance { p =>
     val comment = p.description.fold(Doc.empty)(c => Doc.text("// ") + Doc.text(c) + Doc.hardLine)
-    comment + Code.ascribed(Code.term(p.name), p.asType)
+    comment + Code.ascribed(Code.term(p.name), p.asDoc)
   }
 }

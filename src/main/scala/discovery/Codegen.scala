@@ -75,41 +75,41 @@ object Codegen {
   def mkPropertyType(
       parentName: String,
       name: String,
-      property: Schema): Writer[List[GeneratedType], ParamType] = {
+      property: Schema): Writer[List[GeneratedType], Type] = {
 
     val primitive = property.format
       .collect {
-        case "int32" => ParamType.simple("Int")
+        case "int32" => Type.simple("Int")
         case "int64" | "uint32" =>
           if (property.description.exists(_.contains("millis")))
-            ParamType.importedType("_root_.scala.concurrent.duration.FiniteDuration")
+            Type.importedType("_root_.scala.concurrent.duration.FiniteDuration")
           else
-            ParamType.simple("Long")
-        case "uint64" => ParamType.simple("BigInt")
-        case "double" => ParamType.simple("Double")
-        case "byte" => ParamType.importedType("_root_.scodec.bits.ByteVector")
+            Type.simple("Long")
+        case "uint64" => Type.simple("BigInt")
+        case "double" => Type.simple("Double")
+        case "byte" => Type.importedType("_root_.scodec.bits.ByteVector")
       }
       .orElse(property.`type`.filter(_ => property.`enum`.isEmpty).collect {
-        case "string" => ParamType.simple("String")
-        case "boolean" => ParamType.simple("Boolean")
-        case "integer" => ParamType.simple("Int")
-        case "number" => ParamType.simple("Double")
+        case "string" => Type.simple("String")
+        case "boolean" => Type.simple("Boolean")
+        case "integer" => Type.simple("Int")
+        case "number" => Type.simple("Double")
       })
       .map(Writer(List.empty[GeneratedType], _))
 
     val array = property.`type`.collect { case "array" =>
       property.items.map { p =>
         mkPropertyType(parentName, inflector.singularize(name).capitalize, p).map { t =>
-          ParamType.list(t)
+          Type.list(t)
         }
       }
     }.flatten
 
     val ref = property.`$ref`.map(_.split("/").last)
       .map {
-        case "JsonValue" => ParamType.importedType("_root_.io.circe.Json")
-        case "JsonObject" => ParamType.importedType("_root_.io.circe.JsonObject")
-        case x => ParamType.simple(x)
+        case "JsonValue" => Type.importedType("_root_.io.circe.Json")
+        case "JsonObject" => Type.importedType("_root_.io.circe.JsonObject")
+        case x => Type.simple(x)
       }
       .map(Writer(List.empty[GeneratedType], _))
 
@@ -119,22 +119,22 @@ object Codegen {
           val schemaName = s"$parentName${name.capitalize}"
           Writer(
             mkSchema(schemaName, Schema(properties = Some(p))),
-            ParamType.simple(schemaName)
+            Type.simple(schemaName)
           )
         }
         .orElse(property.additionalProperties.map { p =>
           mkPropertyType(parentName, name.capitalize, p).map(t =>
-            ParamType.simple(s"Map[String, ${t.name}]")) // todo: need collectionType here
+            Type.simple(s"Map[String, ${t.name}]")) // todo: need collectionType here
         })
         .getOrElse(
-          Writer(List.empty[GeneratedType], ParamType.importedType("_root_.io.circe.JsonObject")))
+          Writer(List.empty[GeneratedType], Type.importedType("_root_.io.circe.JsonObject")))
     }
 
-    val enumType: Option[Writer[List[GeneratedType], ParamType]] = property.`enum`.map { enums =>
+    val enumType: Option[Writer[List[GeneratedType], Type]] = property.`enum`.map { enums =>
       val typeName = s"$parentName${name.capitalize}"
       Writer(
         EnumType(typeName, enums, property.enumDescriptions.getOrElse(Nil)) :: Nil,
-        ParamType.simple(typeName))
+        Type.simple(typeName))
     }
 
     primitive
@@ -142,7 +142,7 @@ object Codegen {
       .orElse(ref)
       .orElse(array)
       .orElse(obj)
-      .getOrElse(Writer(List.empty[GeneratedType], ParamType.importedType("_root_.io.circe.Json")))
+      .getOrElse(Writer(List.empty[GeneratedType], Type.importedType("_root_.io.circe.Json")))
   }
 
   def jsonInstances(packageName: String) = SourceFile(

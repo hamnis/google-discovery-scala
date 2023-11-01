@@ -1,6 +1,7 @@
 package discovery
 
-import org.typelevel.paiges.{Doc, Document}
+import org.typelevel.paiges.Doc
+import org.typelevel.paiges.Document.ops._
 
 object Code {
   val lparens = Doc.char('(')
@@ -33,7 +34,57 @@ object Code {
     block(expr)
   }
 
+  def Def(
+           name: String,
+           tparams: List[Type],
+           params: List[Parameter],
+           returnType: Option[Type],
+           body: Doc) = {
+    val defn = Doc.text(s"def ") + term(name)
+    val appliedTParams =
+      if (tparams.nonEmpty)
+        Doc
+          .intercalate(Doc.comma + Doc.lineOrSpace, tparams.map(_.asDoc))
+          .tightBracketBy(Code.lbracket, Code.rbracket)
+      else Doc.empty
+
+    val appliedParams =
+      if (params.nonEmpty)
+        Doc
+          .intercalate(Doc.comma + Doc.lineOrSpace, params.map(_.doc))
+          .tightBracketBy(Code.lparens, Code.rparens)
+      else Doc.empty
+
+    val applied = defn + appliedTParams + appliedParams
+    assigment(
+      returnType.map(t => ascribed(applied, t.asDoc)).getOrElse(applied),
+      Doc.lineOrEmpty + body)
+  }
+
   def term(name: String) = Doc.text(Sanitize(name))
+
+  def termSelect(name: Doc, selected: Doc) =
+    name + Doc.lineOrEmpty + Doc.char('.') + Doc.lineOrEmpty + selected
+
+  def termApply(name: Doc, typeParams: List[Type], arg: Doc) = {
+    val tApplied =
+      if (typeParams.nonEmpty)
+        Doc.intercalate(Doc.comma, typeParams.map(_.asDoc)).tightBracketBy(lbracket, rbracket)
+      else Doc.empty
+    arg.tightBracketBy(name + tApplied + lparens, rparens)
+  }
+
+  def forComprehension(generators: List[(Doc, Doc)], yieldBlock: Doc) = {
+    val genDoc = Doc.hardLine + Doc.intercalate(
+      Doc.hardLine,
+      generators.map { case (pat, gen) =>
+        pat + Doc.lineOrSpace + Doc.text("<-") + Doc.lineOrSpace + gen
+      })
+
+    val yieldDoc = Doc.hardLine + rbrace + Doc.text(" yield ") + yieldBlock
+
+    genDoc.tightBracketBy(Doc.text("for {") , yieldDoc)
+  }
 
   object Sanitize {
     def apply(s: String): String = s match {
