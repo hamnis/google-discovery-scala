@@ -55,7 +55,7 @@ object Client {
     val resolveTypes = discovery.schemas.keys.map(typ => typ -> Type.apply(typ)).toMap
 
     resources.flatMap { case (resourceName, resource) =>
-      resource.methods.map { case (name, invocations: Invocations) =>
+      resource.methods.values.map { invocations: Invocations =>
         val resolved = invocations.methods.map { case (method, invocation) =>
           ResolvedInvocation(
             method,
