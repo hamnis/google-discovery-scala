@@ -32,6 +32,13 @@ object Type {
   case class Imported(qualified: String, name: String) extends Type {
     def asDoc = Doc.text(name)
   }
+
+  def findImports(param: Type, imports: List[String]): List[String] = param match {
+    case Type.Constructor(outer, elemTypes) =>
+      findImports(outer, elemTypes.flatMap(findImports(_, imports)))
+    case Type.Imported(fqcn, _) => fqcn :: imports
+    case _ => imports
+  }
 }
 
 sealed trait GeneratedType {
@@ -92,12 +99,13 @@ object EnumType {
           rparens
         )
 
+      val enumAsType = Type(enumType.name)
       val fromString =
         Code.Def(
           "fromString",
           Nil,
           List(Parameter("input", Type("String"), None, required = true)),
-          Some(Type.constructor(Type("Either"), Type("String"), Type(enumType.name))), {
+          Some(Type.constructor(Type("Either"), Type("String"), enumAsType)), {
             val msg = Code.interpolate(
               "s",
               Doc.text(s"'$$input' was not a valid value for ${enumType.name}"))
@@ -111,12 +119,12 @@ object EnumType {
       val decoderInstance =
         TypeClassInstance(
           "decoder",
-          Type.decoder(Type(enumType.name)),
+          Type.decoder(enumAsType),
           Doc.text("Decoder[String].emap(s => fromString(s))"))
       val encoderInstance =
         TypeClassInstance(
           "encoder",
-          Type.encoder(Type(enumType.name)),
+          Type.encoder(enumAsType),
           Doc.text("Encoder[String].contramap(_.value)"))
 
       val body =
@@ -135,19 +143,13 @@ case class CaseClass(
     name: String,
     parameters: List[Parameter]
 ) extends GeneratedType {
+  val asType: Type = Type(name)
 
-  def imports = {
-    def go(param: Type, imports: List[String]): List[String] = param match {
-      case Type.Constructor(outer, elemTypes) =>
-        go(outer, elemTypes.flatMap(go(_, imports)))
-      case Type.Imported(fqcn, _) => fqcn :: imports
-      case _ => imports
-    }
+  def imports =
     List("JsonInstances._", "io.circe._", "io.circe.syntax._") ::: parameters
-      .flatMap(p => go(p.`type`, Nil))
+      .flatMap(p => Type.findImports(p.`type`, Nil))
       .distinct
       .reverse
-  }
 }
 
 object CaseClass {
@@ -170,15 +172,14 @@ object CaseClass {
           .intercalate(
             Doc.comma + Doc.lineOrSpace,
             cc.parameters.map(p =>
-              Code.literal(Doc.text(p.name)) + Doc.lineOrSpace + Doc.text(
-                ":=") + Doc.lineOrSpace + Code
-                .termSelect(Doc.text("x"), Code.term(p.name)))
+              p.literal + Doc.lineOrSpace + Doc.text(":=") + Doc.lineOrSpace + Code
+                .termSelect(Doc.text("x"), p.term))
           )
           .tightBracketBy(Doc.text("Json.obj("), Code.rparens)
 
         TypeClassInstance(
           "encoder",
-          Type.encoder(Type(cc.name)),
+          Type.encoder(cc.asType),
           obj.tightBracketBy(Doc.text("Encoder.instance{ x =>"), Code.rbrace)
         )
       }
@@ -206,7 +207,7 @@ object CaseClass {
 
         TypeClassInstance(
           "decoder",
-          Type.decoder(Type(cc.name)),
+          Type.decoder(cc.asType),
           forcomp.tightBracketBy(
             Doc.text("Decoder.instance{ c => "),
             Doc.hardLine + Code.rbrace
@@ -224,6 +225,8 @@ case class Parameter(
     description: Option[String],
     required: Boolean
 ) {
+  def literal = Code.literal(Doc.text(name))
+  def term = Code.term(name)
   def actualType = if (required) `type` else Type.option(`type`)
   def asDoc = actualType.asDoc
 }
@@ -231,6 +234,6 @@ case class Parameter(
 object Parameter {
   implicit val renderer: Document[Parameter] = Document.instance { p =>
     val comment = p.description.fold(Doc.empty)(c => Doc.text("// ") + Doc.text(c) + Doc.hardLine)
-    comment + Code.ascribed(Code.term(p.name), p.asDoc)
+    comment + Code.ascribed(p.term, p.asDoc)
   }
 }

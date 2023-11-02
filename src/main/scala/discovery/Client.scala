@@ -12,7 +12,7 @@ case class Client(name: String, baseUri: Uri, methods: List[Client.ResolvedInvoc
       "org.http4s.circe._",
       "org.http4s.client.Client",
       "io.circe.{Encoder, Decoder}"
-    )
+    ) ++ methods.flatMap(m => m.findTypes.flatMap(Type.findImports(_, Nil)))
 
   def toCode = {
     val definition = Doc.text(s"class ${name}[F[_]: Concurrent](client: Client[F]) ") +
@@ -85,6 +85,9 @@ object Client {
       requestType: Option[Type],
       responseType: Option[Type]
   ) {
+    def findTypes =
+      List(requestType.toList, responseType.toList, template.params.map(_.`type`)).flatten
+
     def toCode = {
       val assigned = {
         val left = Doc.text(s"def ${name}(") + Doc.hardLine
