@@ -157,7 +157,7 @@ object CaseClass {
   implicit val renderer: Document[CaseClass] =
     Document.instance { cc =>
       def render: Doc = {
-        val prefix = Doc.text(s"case class ${cc.name}")
+        val prefix = Doc.text(s"final case class ${cc.name}")
         val params = if (cc.parameters.isEmpty) Doc.text("()") else Code.paramsToDoc(cc.parameters)
         prefix + params
       }
