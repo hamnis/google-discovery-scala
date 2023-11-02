@@ -1,44 +1,49 @@
 package discovery
 
-import io.circe.{Codec, Decoder, Encoder}
-
-import scala.concurrent.duration.{DurationLong, FiniteDuration}
+import org.typelevel.paiges.Document.ops._
 
 class CodegenTest extends munit.FunSuite {
-
-  Codec.from(Decoder[Long], Encoder[Long]).iemap(l => Right(l.millis))(_.toMillis)
   test("case class") {
     val cc = CaseClass(
       "Person",
       List(
-        Parameter("name", ParamType.simple("String"), None, true),
-        Parameter("age", ParamType.simple("Int"), None, true)))
+        Parameter("name", Type("String"), None, true),
+        Parameter("age", Type("Int"), None, true)))
 
-    val ccAsString = cc.toString
-    val expected = """final case class Person(
-                     |  name: String,
-                     |  age: Int
-                     |)
-                     |
+    val ccAsString = CaseClass.renderer.document(cc).render(80)
+    val expected = """case class Person(name: String, age: Int)
                      |object Person {
-                     |
-                     |  implicit val encoder: _root_.io.circe.Encoder[Person] = _root_.io.circe.Encoder.instance{ x =>
-                     |      import io.circe.syntax._
-                     |
-                     |      io.circe.Json.obj(
-                     |        "name" -> x.name.asJson,
-                     |        "age" -> x.age.asJson
-                     |      )
+                     |  implicit val encoder: Encoder[Person] = Encoder.instance{ x =>
+                     |    Json.obj("name" := x.name, "age" := x.age)
                      |  }
-                     |  implicit val decoder: _root_.io.circe.Decoder[Person] = _root_.io.circe.Decoder.instance{ c =>
-                     |      for {
-                     |        v0 <- c.get[String]("name")
-                     |        v1 <- c.get[Int]("age")
-                     |      } yield Person(v0,v1)
+                     |  implicit val decoder: Decoder[Person] = Decoder.instance{ c => for {
+                     |      v0 <- c.get[String]("name")
+                     |      v1 <- c.get[Int]("age")
+                     |    } yield Person(v0, v1)
                      |  }
                      |}
                      |""".stripMargin
 
     assertEquals(ccAsString, expected)
+  }
+
+  test("enum") {
+    val enumType = EnumType("Kind", List("one", "two"), List("Lots of ones", "Even more twos"))
+
+    val rendered = enumType.doc.render(80)
+
+    val expected = """sealed abstract class Kind(val value: String) extends Product with Serializable
+                     |object Kind {
+                     |  // Lots of ones
+                     |  case object ONE extends Kind("one")
+                     |  // Even more twos
+                     |  case object TWO extends Kind("two")
+                     |  val values = List(ONE, TWO)
+                     |  def fromString(input: String): Either[String, Kind] = values.find(_.value == input).toRight(s"'$input' was not a valid value for Kind")
+                     |  implicit val decoder: Decoder[Kind] = Decoder[String].emap(s => fromString(s))
+                     |  implicit val encoder: Encoder[Kind] = Encoder[String].contramap(_.value)
+                     |}
+                     |""".stripMargin
+    assertEquals(rendered, expected)
   }
 }

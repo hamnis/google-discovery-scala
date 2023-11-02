@@ -2,9 +2,18 @@ package discovery
 
 import io.circe.Decoder
 import io.circe.generic.semiauto.*
-case class Discovery(schemas: Map[String, Schema], revision: String, resources: Option[Resources])
+import org.http4s.Uri
+
+case class Discovery(
+    schemas: Map[String, Schema],
+    revision: String,
+    baseUrl: Uri,
+    resources: Option[Resources]
+)
 
 object Discovery {
+  implicit val uriDecoder: Decoder[Uri] =
+    Decoder[String].emap(Uri.fromString(_).left.map(_.message))
   implicit val decoder: Decoder[Discovery] = deriveDecoder
 }
 
@@ -40,7 +49,7 @@ object HttpParameters {
   implicit val decoder: Decoder[HttpParameters] = Decoder.instance(c =>
     for {
       map <- c.as[Map[String, HttpParameter]]
-      order <- c.get[Option[List[String]]]("parameterOrder")
+      order <- c.up.get[Option[List[String]]]("parameterOrder")
     } yield HttpParameters(map, order.getOrElse(Nil)))
 }
 
@@ -58,15 +67,15 @@ object Http {
   implicit val decoder: Decoder[Http] = deriveDecoder
 }
 
-case class Methods(methods: Map[String, Http])
-object Methods {
-  implicit val decoder: Decoder[Methods] = Decoder[Map[String, Http]].map(apply)
+case class Invocations(methods: Map[String, Http])
+object Invocations {
+  implicit val decoder: Decoder[Invocations] = Decoder[Map[String, Http]].map(apply)
 }
 
-case class Resource(methods: Map[String, Methods])
+case class Resource(methods: Map[String, Invocations])
 
 object Resource {
-  implicit val decoder: Decoder[Resource] = Decoder[Map[String, Methods]].map(apply)
+  implicit val decoder: Decoder[Resource] = Decoder[Map[String, Invocations]].map(apply)
 }
 
 case class Resources(resources: Map[String, Resource])
