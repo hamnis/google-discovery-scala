@@ -1,7 +1,7 @@
 enablePlugins(SbtPlugin)
 
-organization := "net.hamnaberg.sbt"
-name := "sbt-google-discovery"
+organization := "net.hamnaberg"
+name := "google-discovery"
 
 val circeVersion = "0.14.6"
 libraryDependencies ++= Seq(
@@ -9,8 +9,7 @@ libraryDependencies ++= Seq(
   "io.circe" %% "circe-generic" % circeVersion,
   "io.circe" %% "circe-parser" % circeVersion,
   "org.scalameta" %% "munit" % "0.7.29" % Test,
-  "org.http4s" %% "http4s-client" % "0.23.23",
-  "org.http4s" %% "http4s-circe" % "0.23.23",
+  "org.http4s" %% "http4s-core" % "0.23.23",
   "org.typelevel" %% "paiges-cats" % "0.4.3"
 )
 

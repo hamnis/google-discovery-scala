@@ -2,7 +2,7 @@ ThisBuild / version := "0.1"
 
 name := "bigquery"
 
-crossScalaVersions := List("2.13.11", "2.12.18", "3.3.1")
+crossScalaVersions := List("2.13.12", "2.12.18", "3.3.1")
 scalaVersion := crossScalaVersions.value.head
 
 scalacOptions ++= {
