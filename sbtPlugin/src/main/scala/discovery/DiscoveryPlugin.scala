@@ -31,7 +31,7 @@ object DiscoveryPlugin extends AutoPlugin {
       val mangedDir = (Compile / sourceManaged).value / "scala"
       val packageName = discoveryPackage.value
 
-      Codegen.generateFromDiscovery(packageName, discovery).map(_.writeTo(mangedDir))
+      Codegen.generateFromDiscovery(packageName, discovery).map(_.writeTo(mangedDir.toPath).toFile)
     }
   )
 }

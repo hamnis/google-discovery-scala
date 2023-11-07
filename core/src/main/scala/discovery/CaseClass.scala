@@ -71,7 +71,6 @@ case class EnumType(name: String, cases: List[String], descriptions: List[String
 object EnumType {
   implicit val renderer: Document[EnumType] =
     Document.instance { enumType =>
-      import Code.*
       def toObjectName(_case: String) = _case.toUpperCase.replaceAll("\\W", "_")
 
       val cls = Doc.text(
@@ -84,7 +83,7 @@ object EnumType {
             val obj =
               Doc.text(s"case object ${toObjectName(k)} extends ${enumType.name}") + Doc
                 .text(k)
-                .tightBracketBy(lparens + quote, quote + rparens)
+                .tightBracketBy(Code.lparens + Code.quote, Code.quote + Code.rparens)
             val comment = Doc.text("// ") + Doc.text(v)
             comment + Doc.hardLine + obj
           }
@@ -95,8 +94,8 @@ object EnumType {
       val values = Doc
         .intercalate(Doc.comma + Doc.line, enumType.cases.map(toObjectName).map(Doc.text))
         .tightBracketBy(
-          Doc.text("val values = List") + lparens,
-          rparens
+          Doc.text("val values = List") + Code.lparens,
+          Code.rparens
         )
 
       val enumAsType = Type(enumType.name)
@@ -132,7 +131,7 @@ object EnumType {
           Doc.hardLine,
           List(objects, values, fromString, decoderInstance.doc, encoderInstance.doc))
 
-      val companion = body.tightBracketBy(companionPrefix, Doc.hardLine + rbrace)
+      val companion = body.tightBracketBy(companionPrefix, Doc.hardLine + Code.rbrace)
 
       Doc.intercalate(Doc.hardLine, List(cls, companion)) + Doc.hardLine
     }

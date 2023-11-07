@@ -1,7 +1,7 @@
 package discovery
 
 import io.circe.Decoder
-import io.circe.generic.semiauto.*
+import io.circe.generic.semiauto._
 import org.http4s.Uri
 
 case class Discovery(

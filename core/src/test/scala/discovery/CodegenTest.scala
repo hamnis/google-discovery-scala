@@ -11,7 +11,7 @@ class CodegenTest extends munit.FunSuite {
         Parameter("age", Type("Int"), None, true)))
 
     val ccAsString = CaseClass.renderer.document(cc).render(80)
-    val expected = """case class Person(name: String, age: Int)
+    val expected = """final case class Person(name: String, age: Int)
                      |object Person {
                      |  implicit val encoder: Encoder[Person] = Encoder.instance{ x =>
                      |    Json.obj("name" := x.name, "age" := x.age)
