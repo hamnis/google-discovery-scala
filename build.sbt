@@ -1,8 +1,20 @@
-ThisBuild / organization := "net.hamnaberg"
-name := "google-discovery"
-
-Compile / publishArtifact := false
-Compile / doc / publishArtifact := false
+inThisBuild(Seq(
+  organization := "net.hamnaberg",
+  githubWorkflowTargetTags ++= Seq("v*"),
+  githubWorkflowPublishTargetBranches :=
+   Seq(RefPredicate.StartsWith(Ref.Tag("v"))),
+  githubWorkflowPublish := Seq(
+    WorkflowStep.Sbt(
+      commands = List("ci-release"),
+      name = Some("Publish project"),
+    )
+  ),
+  crossScalaVersions := Seq(scala212, scala213, scala3),
+  scalaVersion := crossScalaVersions.value.head,
+  githubWorkflowBuild := Seq(WorkflowStep.Sbt(List("+test", "sbtPlugin/scripted"), name = Some("Build project"))),
+  githubWorkflowBuildSbtStepPreamble := Nil,
+  githubWorkflowScalaVersions := Nil
+))
 
 val circeVersion = "0.14.6"
 
@@ -14,8 +26,7 @@ val core = project
   .in(file("core"))
   .settings(
     name := "google-discovery-core",
-    crossScalaVersions := Seq(scala212, scala213, scala3),
-    scalaVersion := crossScalaVersions.value.head,
+
     libraryDependencies ++= Seq(
       "io.circe" %% "circe-core" % circeVersion,
       "io.circe" %% "circe-generic" % circeVersion,
@@ -39,3 +50,13 @@ val sbtPlugin = project
         Seq("-Xmx1024M", "-Dplugin.version=" + (ThisBuild / version).value)
     }
   )
+
+lazy val root = project.in(file(".")).settings(
+  name := "google-discovery",
+
+  publish := {},
+  publishLocal := {},
+  publishArtifact := false,
+  publish / skip := true
+
+)
