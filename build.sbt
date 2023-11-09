@@ -8,6 +8,12 @@ inThisBuild(Seq(
     WorkflowStep.Sbt(
       commands = List("ci-release"),
       name = Some("Publish project"),
+      env = Map(
+        "PGP_PASSPHRASE" -> "${{ secrets.PGP_PASSPHRASE }}",
+        "PGP_SECRET" -> "${{ secrets.PGP_SECRET }}",
+        "SONATYPE_PASSWORD" -> "${{ secrets.SONATYPE_PASSWORD }}",
+        "SONATYPE_USERNAME" -> "${{ secrets.SONATYPE_USERNAME }}"
+      )
     )
   ),
   crossScalaVersions := Seq(scala212, scala213, scala3),
@@ -16,7 +22,17 @@ inThisBuild(Seq(
   githubWorkflowBuildSbtStepPreamble := Nil,
   githubWorkflowScalaVersions := List("all"),
   githubWorkflowGeneratedDownloadSteps := Nil,
-  githubWorkflowArtifactUpload := false
+  githubWorkflowArtifactUpload := false,
+  homepage := Some(url("https://github.com/hamnis/google-discovery-scala")),
+  licenses := List(License.Apache2),
+  developers := List(
+    Developer(
+      "hamnis",
+      "Erlend Hamnaberg",
+      "erlend@hamnaberg.net",
+      url("https://github.com/hamnis")
+    )
+  )
 ))
 
 val circeVersion = "0.14.6"
@@ -29,7 +45,7 @@ val core = project
   .in(file("core"))
   .settings(
     name := "google-discovery-core",
-
+    javacOptions ++= List("--release", "8"),
     libraryDependencies ++= Seq(
       "io.circe" %% "circe-core" % circeVersion,
       "io.circe" %% "circe-generic" % circeVersion,
