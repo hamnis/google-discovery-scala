@@ -23,7 +23,7 @@ jobs:
     strategy:
       matrix:
         os: [ubuntu-latest]
-        scala: [all]
+        scala: [2.12.18]
         java: [temurin@17]
     runs-on: ${{ matrix.os }}
     steps:
@@ -41,12 +41,21 @@ jobs:
           cache: sbt
 
       - name: Check that workflows are up to date
-        run: sbt githubWorkflowCheck
+        run: sbt '++ ${{ matrix.scala }}' githubWorkflowCheck
 
       - name: Build project
         env:
           JAVA_TOOL_OPTIONS: '-Xss10M'
-        run: sbt +test sbtPlugin/scripted
+        run: sbt '++ ${{ matrix.scala }}' +test sbtPlugin/scripted
+
+      - name: Compress target directories
+        run: tar cf targets.tar target core/target sbtPlugin/target project/target
+
+      - name: Upload target directories
+        uses: actions/upload-artifact@v3
+        with:
+          name: target-${{ matrix.os }}-${{ matrix.scala }}-${{ matrix.java }}
+          path: targets.tar
 
   publish:
     name: Publish Artifacts
@@ -71,6 +80,16 @@ jobs:
           distribution: temurin
           java-version: 17
           cache: sbt
+
+      - name: Download target directories (2.12.18)
+        uses: actions/download-artifact@v3
+        with:
+          name: target-${{ matrix.os }}-2.12.18-${{ matrix.java }}
+
+      - name: Inflate target directories (2.12.18)
+        run: |
+          tar xf targets.tar
+          rm targets.tar
 
       - name: Publish project
         env:
