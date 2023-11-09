@@ -6,7 +6,7 @@ crossScalaVersions := List("2.13.12", "2.12.18", "3.3.1")
 scalaVersion := crossScalaVersions.value.head
 
 scalacOptions ++= {
-  if (scalaBinaryVersion.value == "3") Seq("-Xmax-inlines", "128", "-J-Xss3m") else Nil
+  if (scalaBinaryVersion.value == "3") Seq("-J-Xss5m") else Nil
 }
 
 enablePlugins(DiscoveryPlugin)
