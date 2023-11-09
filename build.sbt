@@ -13,7 +13,9 @@ inThisBuild(Seq(
   scalaVersion := crossScalaVersions.value.head,
   githubWorkflowBuild := Seq(WorkflowStep.Sbt(List("+test", "sbtPlugin/scripted"), name = Some("Build project"))),
   githubWorkflowBuildSbtStepPreamble := Nil,
-  githubWorkflowScalaVersions := Nil
+  githubWorkflowScalaVersions := List("all"),
+  githubWorkflowGeneratedDownloadSteps := Nil,
+  githubWorkflowArtifactUpload := false
 ))
 
 val circeVersion = "0.14.6"

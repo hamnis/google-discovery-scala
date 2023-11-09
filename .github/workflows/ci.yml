@@ -23,7 +23,7 @@ jobs:
     strategy:
       matrix:
         os: [ubuntu-latest]
-        scala: []
+        scala: [all]
         java: [temurin@8]
     runs-on: ${{ matrix.os }}
     steps:
@@ -45,15 +45,6 @@ jobs:
 
       - name: Build project
         run: sbt +test sbtPlugin/scripted
-
-      - name: Compress target directories
-        run: tar cf targets.tar target core/target sbtPlugin/target project/target
-
-      - name: Upload target directories
-        uses: actions/upload-artifact@v3
-        with:
-          name: target-${{ matrix.os }}-${{ matrix.scala }}-${{ matrix.java }}
-          path: targets.tar
 
   publish:
     name: Publish Artifacts
