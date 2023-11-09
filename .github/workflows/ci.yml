@@ -24,7 +24,7 @@ jobs:
       matrix:
         os: [ubuntu-latest]
         scala: [all]
-        java: [temurin@8]
+        java: [temurin@17]
     runs-on: ${{ matrix.os }}
     steps:
       - name: Checkout current branch (full)
@@ -32,12 +32,12 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Setup Java (temurin@8)
-        if: matrix.java == 'temurin@8'
+      - name: Setup Java (temurin@17)
+        if: matrix.java == 'temurin@17'
         uses: actions/setup-java@v3
         with:
           distribution: temurin
-          java-version: 8
+          java-version: 17
           cache: sbt
 
       - name: Check that workflows are up to date
@@ -54,7 +54,7 @@ jobs:
       matrix:
         os: [ubuntu-latest]
         scala: [2.12.18]
-        java: [temurin@8]
+        java: [temurin@17]
     runs-on: ${{ matrix.os }}
     steps:
       - name: Checkout current branch (full)
@@ -62,12 +62,12 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Setup Java (temurin@8)
-        if: matrix.java == 'temurin@8'
+      - name: Setup Java (temurin@17)
+        if: matrix.java == 'temurin@17'
         uses: actions/setup-java@v3
         with:
           distribution: temurin
-          java-version: 8
+          java-version: 17
           cache: sbt
 
       - name: Publish project

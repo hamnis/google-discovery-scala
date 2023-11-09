@@ -1,5 +1,6 @@
 inThisBuild(Seq(
   organization := "net.hamnaberg",
+  githubWorkflowJavaVersions := Seq(JavaSpec.temurin("17")),
   githubWorkflowTargetTags ++= Seq("v*"),
   githubWorkflowPublishTargetBranches :=
    Seq(RefPredicate.StartsWith(Ref.Tag("v"))),
