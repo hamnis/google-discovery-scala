@@ -1,8 +1,45 @@
-ThisBuild / organization := "net.hamnaberg"
-name := "google-discovery"
-
-Compile / publishArtifact := false
-Compile / doc / publishArtifact := false
+inThisBuild(Seq(
+  organization := "net.hamnaberg",
+  githubWorkflowJavaVersions := Seq(JavaSpec.temurin("17")),
+  githubWorkflowTargetTags ++= Seq("v*"),
+  githubWorkflowPublishTargetBranches :=
+   Seq(RefPredicate.StartsWith(Ref.Tag("v"))),
+  githubWorkflowPublish := Seq(
+    WorkflowStep.Sbt(
+      commands = List("ci-release"),
+      name = Some("Publish project"),
+      env = Map(
+        "PGP_PASSPHRASE" -> "${{ secrets.PGP_PASSPHRASE }}",
+        "PGP_SECRET" -> "${{ secrets.PGP_SECRET }}",
+        "SONATYPE_PASSWORD" -> "${{ secrets.SONATYPE_PASSWORD }}",
+        "SONATYPE_USERNAME" -> "${{ secrets.SONATYPE_USERNAME }}"
+      )
+    )
+  ),
+  crossScalaVersions := Seq(scala212, scala213, scala3),
+  scalaVersion := crossScalaVersions.value.head,
+  githubWorkflowBuild := Seq(WorkflowStep.Sbt(
+    commands = List("+test", "sbtPlugin/scripted"),
+    name = Some("Build project"),
+    env = Map(
+      "JAVA_TOOL_OPTIONS" -> "-Xss10M"
+    )
+  )),
+  githubWorkflowBuildSbtStepPreamble := Nil,
+  githubWorkflowScalaVersions := List("all"),
+  githubWorkflowGeneratedDownloadSteps := Nil,
+  githubWorkflowArtifactUpload := false,
+  homepage := Some(url("https://github.com/hamnis/google-discovery-scala")),
+  licenses := List(License.Apache2),
+  developers := List(
+    Developer(
+      "hamnis",
+      "Erlend Hamnaberg",
+      "erlend@hamnaberg.net",
+      url("https://github.com/hamnis")
+    )
+  )
+))
 
 val circeVersion = "0.14.6"
 
@@ -14,8 +51,7 @@ val core = project
   .in(file("core"))
   .settings(
     name := "google-discovery-core",
-    crossScalaVersions := Seq(scala212, scala213, scala3),
-    scalaVersion := crossScalaVersions.value.head,
+    javacOptions ++= List("--release", "8"),
     libraryDependencies ++= Seq(
       "io.circe" %% "circe-core" % circeVersion,
       "io.circe" %% "circe-generic" % circeVersion,
@@ -39,3 +75,13 @@ val sbtPlugin = project
         Seq("-Xmx1024M", "-Dplugin.version=" + (ThisBuild / version).value)
     }
   )
+
+lazy val root = project.in(file(".")).settings(
+  name := "google-discovery",
+
+  publish := {},
+  publishLocal := {},
+  publishArtifact := false,
+  publish / skip := true
+
+)
