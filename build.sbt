@@ -45,8 +45,13 @@ inThisBuild(Seq(
   )
 ))
 
+val commonSettings = Seq(
+  publishTo := sonatypePublishToBundle.value
+)
+
 val core = project
   .in(file("core"))
+  .settings(commonSettings)
   .settings(
     name := "google-discovery-core",
     javacOptions ++= List("--release", "8"),
@@ -62,6 +67,7 @@ val core = project
 
 val sbtPlugin = project
   .in(file("sbtPlugin"))
+  .settings(commonSettings)
   .enablePlugins(SbtPlugin)
   .dependsOn(core)
   .settings(
