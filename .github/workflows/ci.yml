@@ -44,6 +44,8 @@ jobs:
         run: sbt githubWorkflowCheck
 
       - name: Build project
+        env:
+          JAVA_TOOL_OPTIONS: '-Xss10M'
         run: sbt +test sbtPlugin/scripted
 
   publish:

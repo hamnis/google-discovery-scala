@@ -18,7 +18,13 @@ inThisBuild(Seq(
   ),
   crossScalaVersions := Seq(scala212, scala213, scala3),
   scalaVersion := crossScalaVersions.value.head,
-  githubWorkflowBuild := Seq(WorkflowStep.Sbt(List("+test", "sbtPlugin/scripted"), name = Some("Build project"))),
+  githubWorkflowBuild := Seq(WorkflowStep.Sbt(
+    commands = List("+test", "sbtPlugin/scripted"),
+    name = Some("Build project"),
+    env = Map(
+      "JAVA_TOOL_OPTIONS" -> "-Xss10M"
+    )
+  )),
   githubWorkflowBuildSbtStepPreamble := Nil,
   githubWorkflowScalaVersions := List("all"),
   githubWorkflowGeneratedDownloadSteps := Nil,
