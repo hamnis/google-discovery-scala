@@ -2,21 +2,35 @@ val circeVersion = "0.14.6"
 
 val scala212 = "2.12.18"
 
+val baseVersion = "0.1"
+
 inThisBuild(Seq(
   organization := "net.hamnaberg",
+  sonatypeProfileName := organization.value,
   githubWorkflowJavaVersions := Seq(JavaSpec.temurin("17")),
   githubWorkflowTargetTags ++= Seq("v*"),
   githubWorkflowPublishTargetBranches :=
    Seq(RefPredicate.StartsWith(Ref.Tag("v"))),
   githubWorkflowPublish := Seq(
-    WorkflowStep.Sbt(
-      commands = List("ci-release"),
-      name = Some("Publish project"),
+    WorkflowStep.Run(
+      name = Some("Import signing key"),
+      commands = List(
+        """echo "$PGP_SECRET" | base64 -d -i - > /tmp/signing-key.gpg""",
+        """echo "$PGP_PASSPHRASE" | gpg --pinentry-mode loopback --passphrase-fd 0 --import /tmp/signing-key.gpg""",
+        //"""(echo "$PGP_PASSPHRASE"; echo; echo) | gpg --command-fd 0 --pinentry-mode loopback --change-passphrase $(gpg --list-secret-keys --with-colons 2> /dev/null | grep '^sec:' | cut --delimiter ':' --fields 5 | tail -n 1)"""
+      ),
       env = Map(
         "PGP_PASSPHRASE" -> "${{ secrets.PGP_PASSPHRASE }}",
         "PGP_SECRET" -> "${{ secrets.PGP_SECRET }}",
+      )
+    ),
+    WorkflowStep.Sbt(
+      commands = List("+publishSigned", "sonatypeBundleRelease"),
+      name = Some("Publish project"),
+      env = Map(
         "SONATYPE_PASSWORD" -> "${{ secrets.SONATYPE_PASSWORD }}",
-        "SONATYPE_USERNAME" -> "${{ secrets.SONATYPE_USERNAME }}"
+        "SONATYPE_USERNAME" -> "${{ secrets.SONATYPE_USERNAME }}",
+        "PGP_PASSPHRASE" -> "${{ secrets.PGP_PASSPHRASE }}",
       )
     )
   ),
@@ -42,16 +56,22 @@ inThisBuild(Seq(
       "erlend@hamnaberg.net",
       url("https://github.com/hamnis")
     )
-  )
+  ),
+  git.baseVersion := baseVersion,
+  git.formattedShaVersion := None,
+  git.formattedDateVersion := git.baseVersion.value + "-SNAPSHOT"
 ))
 
-val commonSettings = Seq(
-  publishTo := sonatypePublishToBundle.value
-)
+def doConfigure(project: Project): Project = {
+  project.settings(
+    publishTo := sonatypePublishToBundle.value,
+    publishMavenStyle := true,
+  ).enablePlugins(GitVersioning)
+}
 
 val core = project
   .in(file("core"))
-  .settings(commonSettings)
+  .configure(doConfigure)
   .settings(
     name := "google-discovery-core",
     javacOptions ++= List("--release", "8"),
@@ -67,7 +87,7 @@ val core = project
 
 val sbtPlugin = project
   .in(file("sbtPlugin"))
-  .settings(commonSettings)
+  .configure(doConfigure)
   .enablePlugins(SbtPlugin)
   .dependsOn(core)
   .settings(
@@ -80,7 +100,8 @@ val sbtPlugin = project
     }
   )
 
-lazy val root = project.in(file(".")).settings(
+lazy val root = project.in(file(".")).aggregate(core, sbtPlugin).settings(
   name := "google-discovery",
-  publish / skip := true
+  publish / skip := true,
+  publishTo := None
 )
