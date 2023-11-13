@@ -77,17 +77,19 @@ def doConfigure(project: Project): Project = {
 
 val core = (projectMatrix in file("core"))
   .jvmPlatform(scalaVersions = Seq(scala212, scala213, scala3))
+  .jsPlatform(scalaVersions = Seq(scala212, scala213, scala3))
   .configure(doConfigure)
   .settings(
     name := "google-discovery-core",
     javacOptions ++= List("--release", "8"),
+    scalacOptions ++= List("-deprecation", "-feature"),
     libraryDependencies ++= Seq(
-      "io.circe" %% "circe-core" % circeVersion,
-      "io.circe" %% "circe-generic" % circeVersion,
-      "io.circe" %% "circe-parser" % circeVersion,
-      "org.scalameta" %% "munit" % "0.7.29" % Test,
-      "org.http4s" %% "http4s-core" % "0.23.23",
-      "org.typelevel" %% "paiges-cats" % "0.4.3"
+      "io.circe" %%% "circe-core" % circeVersion,
+      "io.circe" %%% "circe-generic" % circeVersion,
+      "io.circe" %%% "circe-jawn" % circeVersion,
+      "org.scalameta" %%% "munit" % "0.7.29" % Test,
+      "org.http4s" %%% "http4s-core" % "0.23.23",
+      "org.typelevel" %%% "paiges-cats" % "0.4.3"
     )
   )
 
