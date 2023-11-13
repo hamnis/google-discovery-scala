@@ -10,7 +10,7 @@ inThisBuild(Seq(
   githubWorkflowJavaVersions := Seq(JavaSpec.temurin("17")),
   githubWorkflowTargetTags ++= Seq("v*"),
   githubWorkflowPublishTargetBranches :=
-   Seq(RefPredicate.StartsWith(Ref.Tag("v"))),
+   Seq(RefPredicate.StartsWith(Ref.Tag("v")), RefPredicate.Equals(Ref.Branch("release"))),
   githubWorkflowPublish := Seq(
     WorkflowStep.Run(
       name = Some("Import signing key"),
@@ -25,7 +25,7 @@ inThisBuild(Seq(
       )
     ),
     WorkflowStep.Sbt(
-      commands = List("+publishSigned", "sonatypeBundleRelease"),
+      commands = List("+publishSigned", "sonatypeBundleReleaseIfRelevant"),
       name = Some("Publish project"),
       env = Map(
         "SONATYPE_PASSWORD" -> "${{ secrets.SONATYPE_PASSWORD }}",
@@ -62,10 +62,19 @@ inThisBuild(Seq(
   git.formattedDateVersion := git.baseVersion.value + "-SNAPSHOT"
 ))
 
+def sonatypeBundleReleaseIfRelevant: Command =
+  Command.command("sonatypeBundleReleaseIfRelevant") { state =>
+    if (state.getSetting(isSnapshot).getOrElse(false))
+      state // a snapshot is good-to-go
+    else // a non-snapshot releases as a bundle
+      Command.process("sonatypeBundleRelease", state)
+  }
+
 def doConfigure(project: Project): Project = {
   project.settings(
     publishTo := sonatypePublishToBundle.value,
     publishMavenStyle := true,
+    commands += sonatypeBundleReleaseIfRelevant,
   ).enablePlugins(GitVersioning)
 }
 
@@ -100,7 +109,7 @@ val sbtPlugin = project
     }
   )
 
-lazy val root = project.in(file(".")).aggregate(core, sbtPlugin).settings(
+lazy val root = project.in(file(".")).configure(doConfigure).aggregate(core, sbtPlugin).settings(
   name := "google-discovery",
   publish / skip := true,
   publishTo := None
