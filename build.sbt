@@ -1,6 +1,8 @@
 val circeVersion = "0.14.6"
 
 val scala212 = "2.12.18"
+val scala213 = "2.13.12"
+val scala3 = "3.3.1"
 
 val baseVersion = "0.1"
 
@@ -34,7 +36,6 @@ inThisBuild(Seq(
       )
     )
   ),
-  //crossScalaVersions := Seq(scala212, scala213, scala3),
   scalaVersion := scala212,
   githubWorkflowBuild := Seq(WorkflowStep.Sbt(
     commands = List("+test", "sbtPlugin/scripted"),
@@ -43,10 +44,6 @@ inThisBuild(Seq(
       "JAVA_TOOL_OPTIONS" -> "-Xss10M"
     )
   )),
-  /*githubWorkflowBuildSbtStepPreamble := Nil,
-  githubWorkflowScalaVersions := List("all"),
-  githubWorkflowGeneratedDownloadSteps := Nil,
-  githubWorkflowArtifactUpload := false,*/
   homepage := Some(url("https://github.com/hamnis/google-discovery-scala")),
   licenses := List(License.Apache2),
   developers := List(
@@ -78,8 +75,8 @@ def doConfigure(project: Project): Project = {
   ).enablePlugins(GitVersioning)
 }
 
-val core = project
-  .in(file("core"))
+val core = (projectMatrix in file("core"))
+  .jvmPlatform(scalaVersions = Seq(scala212, scala213, scala3))
   .configure(doConfigure)
   .settings(
     name := "google-discovery-core",
@@ -94,8 +91,8 @@ val core = project
     )
   )
 
-val sbtPlugin = project
-  .in(file("sbtPlugin"))
+val sbtPlugin = (projectMatrix in file("sbtPlugin"))
+  .jvmPlatform(scalaVersions = Seq(scala212))
   .configure(doConfigure)
   .enablePlugins(SbtPlugin)
   .dependsOn(core)
@@ -109,7 +106,7 @@ val sbtPlugin = project
     }
   )
 
-lazy val root = project.in(file(".")).configure(doConfigure).aggregate(core, sbtPlugin).settings(
+lazy val root = project.in(file(".")).configure(doConfigure).aggregate(core.projectRefs ++ sbtPlugin.projectRefs: _*).settings(
   name := "google-discovery",
   publish / skip := true,
   publishTo := None
