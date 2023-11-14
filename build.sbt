@@ -13,7 +13,7 @@ inThisBuild(
     githubWorkflowJavaVersions := Seq(JavaSpec.temurin("17")),
     githubWorkflowTargetTags ++= Seq("v*"),
     githubWorkflowPublishTargetBranches :=
-      Seq(RefPredicate.StartsWith(Ref.Tag("v")), RefPredicate.Equals(Ref.Branch("release"))),
+      Seq(RefPredicate.StartsWith(Ref.Tag("v")), RefPredicate.Equals(Ref.Branch("main"))),
     githubWorkflowPublish := Seq(
       WorkflowStep.Run(
         name = Some("Import signing key"),
