@@ -43,13 +43,15 @@ jobs:
       - name: Check that workflows are up to date
         run: sbt '++ ${{ matrix.scala }}' githubWorkflowCheck
 
+      - uses: stringbean/scalafmt-action@v3
+
       - name: Build project
         env:
           JAVA_TOOL_OPTIONS: '-Xss10M'
         run: sbt '++ ${{ matrix.scala }}' +test sbtPlugin/scripted
 
       - name: Compress target directories
-        run: tar cf targets.tar target core/target sbtPlugin/target project/target
+        run: tar cf targets.tar target sbtPlugin/target/jvm-2.12 core/target/jvm-2.12 core/target/jvm-3 core/target/js-2.13 core/target/js-2.12 core/target/jvm-2.13 core/target/js-3 project/target
 
       - name: Upload target directories
         uses: actions/upload-artifact@v3
@@ -60,7 +62,7 @@ jobs:
   publish:
     name: Publish Artifacts
     needs: [build]
-    if: github.event_name != 'pull_request' && (startsWith(github.ref, 'refs/tags/v'))
+    if: github.event_name != 'pull_request' && (startsWith(github.ref, 'refs/tags/v') || github.ref == 'refs/heads/main')
     strategy:
       matrix:
         os: [ubuntu-latest]
@@ -91,10 +93,17 @@ jobs:
           tar xf targets.tar
           rm targets.tar
 
-      - name: Publish project
+      - name: Import signing key
         env:
           PGP_PASSPHRASE: ${{ secrets.PGP_PASSPHRASE }}
           PGP_SECRET: ${{ secrets.PGP_SECRET }}
+        run: |
+          echo "$PGP_SECRET" | base64 -d -i - > /tmp/signing-key.gpg
+          echo "$PGP_PASSPHRASE" | gpg --pinentry-mode loopback --passphrase-fd 0 --import /tmp/signing-key.gpg
+
+      - name: Publish project
+        env:
           SONATYPE_PASSWORD: ${{ secrets.SONATYPE_PASSWORD }}
           SONATYPE_USERNAME: ${{ secrets.SONATYPE_USERNAME }}
-        run: sbt ci-release
+          PGP_PASSPHRASE: ${{ secrets.PGP_PASSPHRASE }}
+        run: sbt +aetherDeploy sonatypeBundleReleaseIfRelevant
