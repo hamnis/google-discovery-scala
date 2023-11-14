@@ -46,7 +46,8 @@ inThisBuild(
         env = Map(
           "JAVA_TOOL_OPTIONS" -> "-Xss10M"
         )
-      )),
+      )
+    ),
     homepage := Some(url("https://github.com/hamnis/google-discovery-scala")),
     licenses := List(License.Apache2),
     developers := List(
