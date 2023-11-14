@@ -7,5 +7,5 @@ trait SourceFilePlatform {
   def name: String
   def pkg: String
   def render: String
-  
+
 }

@@ -5,7 +5,8 @@ import cats.data.Writer
 import org.typelevel.paiges.Document.ops._
 
 object Codegen {
-  case class SourceFile(pkg: String, name: String, imports: List[String], body: String) extends SourceFilePlatform {
+  case class SourceFile(pkg: String, name: String, imports: List[String], body: String)
+      extends SourceFilePlatform {
 
     def render =
       s"""|package $pkg

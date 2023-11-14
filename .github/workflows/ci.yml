@@ -43,6 +43,8 @@ jobs:
       - name: Check that workflows are up to date
         run: sbt '++ ${{ matrix.scala }}' githubWorkflowCheck
 
+      - uses: stringbean/scalafmt-action@v3
+
       - name: Build project
         env:
           JAVA_TOOL_OPTIONS: '-Xss10M'
@@ -104,4 +106,4 @@ jobs:
           SONATYPE_PASSWORD: ${{ secrets.SONATYPE_PASSWORD }}
           SONATYPE_USERNAME: ${{ secrets.SONATYPE_USERNAME }}
           PGP_PASSPHRASE: ${{ secrets.PGP_PASSPHRASE }}
-        run: sbt +publishSigned sonatypeBundleReleaseIfRelevant
+        run: sbt +aetherDeploy sonatypeBundleReleaseIfRelevant

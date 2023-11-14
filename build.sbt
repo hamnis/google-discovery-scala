@@ -6,58 +6,61 @@ val scala3 = "3.3.1"
 
 val baseVersion = "0.1"
 
-inThisBuild(Seq(
-  organization := "net.hamnaberg",
-  sonatypeProfileName := organization.value,
-  githubWorkflowJavaVersions := Seq(JavaSpec.temurin("17")),
-  githubWorkflowTargetTags ++= Seq("v*"),
-  githubWorkflowPublishTargetBranches :=
-   Seq(RefPredicate.StartsWith(Ref.Tag("v")), RefPredicate.Equals(Ref.Branch("release"))),
-  githubWorkflowPublish := Seq(
-    WorkflowStep.Run(
-      name = Some("Import signing key"),
-      commands = List(
-        """echo "$PGP_SECRET" | base64 -d -i - > /tmp/signing-key.gpg""",
-        """echo "$PGP_PASSPHRASE" | gpg --pinentry-mode loopback --passphrase-fd 0 --import /tmp/signing-key.gpg""",
-        //"""(echo "$PGP_PASSPHRASE"; echo; echo) | gpg --command-fd 0 --pinentry-mode loopback --change-passphrase $(gpg --list-secret-keys --with-colons 2> /dev/null | grep '^sec:' | cut --delimiter ':' --fields 5 | tail -n 1)"""
+inThisBuild(
+  Seq(
+    organization := "net.hamnaberg",
+    sonatypeProfileName := organization.value,
+    githubWorkflowJavaVersions := Seq(JavaSpec.temurin("17")),
+    githubWorkflowTargetTags ++= Seq("v*"),
+    githubWorkflowPublishTargetBranches :=
+      Seq(RefPredicate.StartsWith(Ref.Tag("v")), RefPredicate.Equals(Ref.Branch("release"))),
+    githubWorkflowPublish := Seq(
+      WorkflowStep.Run(
+        name = Some("Import signing key"),
+        commands = List(
+          """echo "$PGP_SECRET" | base64 -d -i - > /tmp/signing-key.gpg""",
+          """echo "$PGP_PASSPHRASE" | gpg --pinentry-mode loopback --passphrase-fd 0 --import /tmp/signing-key.gpg"""
+          // """(echo "$PGP_PASSPHRASE"; echo; echo) | gpg --command-fd 0 --pinentry-mode loopback --change-passphrase $(gpg --list-secret-keys --with-colons 2> /dev/null | grep '^sec:' | cut --delimiter ':' --fields 5 | tail -n 1)"""
+        ),
+        env = Map(
+          "PGP_PASSPHRASE" -> "${{ secrets.PGP_PASSPHRASE }}",
+          "PGP_SECRET" -> "${{ secrets.PGP_SECRET }}"
+        )
       ),
-      env = Map(
-        "PGP_PASSPHRASE" -> "${{ secrets.PGP_PASSPHRASE }}",
-        "PGP_SECRET" -> "${{ secrets.PGP_SECRET }}",
+      WorkflowStep.Sbt(
+        commands = List("+aetherDeploy", "sonatypeBundleReleaseIfRelevant"),
+        name = Some("Publish project"),
+        env = Map(
+          "SONATYPE_PASSWORD" -> "${{ secrets.SONATYPE_PASSWORD }}",
+          "SONATYPE_USERNAME" -> "${{ secrets.SONATYPE_USERNAME }}",
+          "PGP_PASSPHRASE" -> "${{ secrets.PGP_PASSPHRASE }}"
+        )
       )
     ),
-    WorkflowStep.Sbt(
-      commands = List("+publishSigned", "sonatypeBundleReleaseIfRelevant"),
-      name = Some("Publish project"),
-      env = Map(
-        "SONATYPE_PASSWORD" -> "${{ secrets.SONATYPE_PASSWORD }}",
-        "SONATYPE_USERNAME" -> "${{ secrets.SONATYPE_USERNAME }}",
-        "PGP_PASSPHRASE" -> "${{ secrets.PGP_PASSPHRASE }}",
+    scalaVersion := scala212,
+    githubWorkflowBuild := Seq(
+      WorkflowStep.Use(UseRef.Public("stringbean", "scalafmt-action", "v3")),
+      WorkflowStep.Sbt(
+        commands = List("+test", "sbtPlugin/scripted"),
+        name = Some("Build project"),
+        env = Map(
+          "JAVA_TOOL_OPTIONS" -> "-Xss10M"
+        )
+      )),
+    homepage := Some(url("https://github.com/hamnis/google-discovery-scala")),
+    licenses := List(License.Apache2),
+    developers := List(
+      Developer(
+        "hamnis",
+        "Erlend Hamnaberg",
+        "erlend@hamnaberg.net",
+        url("https://github.com/hamnis")
       )
-    )
-  ),
-  scalaVersion := scala212,
-  githubWorkflowBuild := Seq(WorkflowStep.Sbt(
-    commands = List("+test", "sbtPlugin/scripted"),
-    name = Some("Build project"),
-    env = Map(
-      "JAVA_TOOL_OPTIONS" -> "-Xss10M"
-    )
-  )),
-  homepage := Some(url("https://github.com/hamnis/google-discovery-scala")),
-  licenses := List(License.Apache2),
-  developers := List(
-    Developer(
-      "hamnis",
-      "Erlend Hamnaberg",
-      "erlend@hamnaberg.net",
-      url("https://github.com/hamnis")
-    )
-  ),
-  git.baseVersion := baseVersion,
-  git.formattedShaVersion := None,
-  git.formattedDateVersion := git.baseVersion.value + "-SNAPSHOT"
-))
+    ),
+    git.baseVersion := baseVersion,
+    git.formattedShaVersion := None,
+    git.formattedDateVersion := git.baseVersion.value + "-SNAPSHOT"
+  ))
 
 def sonatypeBundleReleaseIfRelevant: Command =
   Command.command("sonatypeBundleReleaseIfRelevant") { state =>
@@ -67,13 +70,15 @@ def sonatypeBundleReleaseIfRelevant: Command =
       Command.process("sonatypeBundleRelease", state)
   }
 
-def doConfigure(project: Project): Project = {
-  project.settings(
-    publishTo := sonatypePublishToBundle.value,
-    publishMavenStyle := true,
-    commands += sonatypeBundleReleaseIfRelevant,
-  ).enablePlugins(GitVersioning)
-}
+def doConfigure(project: Project): Project =
+  project
+    .settings(
+      publishTo := sonatypePublishToBundle.value,
+      publishMavenStyle := true,
+      commands += sonatypeBundleReleaseIfRelevant,
+      sbtPluginPublishLegacyMavenStyle := false
+    )
+    .enablePlugins(GitVersioning)
 
 val core = (projectMatrix in file("core"))
   .jvmPlatform(scalaVersions = Seq(scala212, scala213, scala3))
@@ -108,8 +113,12 @@ val sbtPlugin = (projectMatrix in file("sbtPlugin"))
     }
   )
 
-lazy val root = project.in(file(".")).configure(doConfigure).aggregate(core.projectRefs ++ sbtPlugin.projectRefs: _*).settings(
-  name := "google-discovery",
-  publish / skip := true,
-  publishTo := None
-)
+lazy val root = project
+  .in(file("."))
+  .configure(doConfigure)
+  .aggregate(core.projectRefs ++ sbtPlugin.projectRefs: _*)
+  .settings(
+    name := "google-discovery",
+    publish / skip := true,
+    publishTo := None
+  )

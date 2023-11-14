@@ -7,7 +7,7 @@ trait SourceFilePlatform {
   def name: String
   def pkg: String
   def render: String
-  
+
   def writeTo(basedir: Path) = {
     val packageDir = pkg.split("\\.").foldLeft(basedir)(_ resolve _)
     val file = packageDir.resolve(s"${name}.scala")
