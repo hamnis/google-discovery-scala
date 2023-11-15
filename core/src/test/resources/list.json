@@ -1,0 +1,201 @@
+{
+  "kind": "discovery#directoryList",
+  "discoveryVersion": "v1",
+  "items": [
+    {
+      "kind": "discovery#directoryItem",
+      "id": "abusiveexperiencereport:v1",
+      "name": "abusiveexperiencereport",
+      "version": "v1",
+      "title": "Abusive Experience Report API",
+      "description": "Views Abusive Experience Report data, and gets a list of sites that have a significant number of abusive experiences.",
+      "discoveryRestUrl": "https://abusiveexperiencereport.googleapis.com/$discovery/rest?version=v1",
+      "icons": {
+        "x16": "https://www.gstatic.com/images/branding/product/1x/googleg_16dp.png",
+        "x32": "https://www.gstatic.com/images/branding/product/1x/googleg_32dp.png"
+      },
+      "documentationLink": "https://developers.google.com/abusive-experience-report/",
+      "preferred": true
+    },
+    {
+      "kind": "discovery#directoryItem",
+      "id": "acceleratedmobilepageurl:v1",
+      "name": "acceleratedmobilepageurl",
+      "version": "v1",
+      "title": "Accelerated Mobile Pages (AMP) URL API",
+      "description": "Retrieves the list of AMP URLs (and equivalent AMP Cache URLs) for a given list of public URL(s).",
+      "discoveryRestUrl": "https://acceleratedmobilepageurl.googleapis.com/$discovery/rest?version=v1",
+      "icons": {
+        "x16": "https://www.gstatic.com/images/branding/product/1x/googleg_16dp.png",
+        "x32": "https://www.gstatic.com/images/branding/product/1x/googleg_32dp.png"
+      },
+      "documentationLink": "https://developers.google.com/amp/cache/",
+      "preferred": true
+    },
+    {
+      "kind": "discovery#directoryItem",
+      "id": "accessapproval:v1",
+      "name": "accessapproval",
+      "version": "v1",
+      "title": "Access Approval API",
+      "description": "An API for controlling access to data by Google personnel.",
+      "discoveryRestUrl": "https://accessapproval.googleapis.com/$discovery/rest?version=v1",
+      "icons": {
+        "x16": "https://www.gstatic.com/images/branding/product/1x/googleg_16dp.png",
+        "x32": "https://www.gstatic.com/images/branding/product/1x/googleg_32dp.png"
+      },
+      "documentationLink": "https://cloud.google.com/assured-workloads/access-approval/docs",
+      "preferred": true
+    },
+    {
+      "kind": "discovery#directoryItem",
+      "id": "accesscontextmanager:v1beta",
+      "name": "accesscontextmanager",
+      "version": "v1beta",
+      "title": "Access Context Manager API",
+      "description": "An API for setting attribute based access control to requests to Google Cloud services.",
+      "discoveryRestUrl": "https://accesscontextmanager.googleapis.com/$discovery/rest?version=v1beta",
+      "icons": {
+        "x16": "https://www.gstatic.com/images/branding/product/1x/googleg_16dp.png",
+        "x32": "https://www.gstatic.com/images/branding/product/1x/googleg_32dp.png"
+      },
+      "documentationLink": "https://cloud.google.com/access-context-manager/docs/reference/rest/",
+      "preferred": false
+    },
+    {
+      "kind": "discovery#directoryItem",
+      "id": "accesscontextmanager:v1",
+      "name": "accesscontextmanager",
+      "version": "v1",
+      "title": "Access Context Manager API",
+      "description": "An API for setting attribute based access control to requests to Google Cloud services.",
+      "discoveryRestUrl": "https://accesscontextmanager.googleapis.com/$discovery/rest?version=v1",
+      "icons": {
+        "x16": "https://www.gstatic.com/images/branding/product/1x/googleg_16dp.png",
+        "x32": "https://www.gstatic.com/images/branding/product/1x/googleg_32dp.png"
+      },
+      "documentationLink": "https://cloud.google.com/access-context-manager/docs/reference/rest/",
+      "preferred": true
+    },
+    {
+      "kind": "discovery#directoryItem",
+      "id": "acmedns:v1",
+      "name": "acmedns",
+      "version": "v1",
+      "title": "ACME DNS API",
+      "description": "Google Domains ACME DNS API that allows users to complete ACME DNS-01 challenges for a domain.",
+      "discoveryRestUrl": "https://acmedns.googleapis.com/$discovery/rest?version=v1",
+      "icons": {
+        "x16": "https://www.gstatic.com/images/branding/product/1x/googleg_16dp.png",
+        "x32": "https://www.gstatic.com/images/branding/product/1x/googleg_32dp.png"
+      },
+      "documentationLink": "https://developers.google.com/domains/acme-dns/",
+      "preferred": true
+    },
+    {
+      "kind": "discovery#directoryItem",
+      "id": "adexchangebuyer2:v2beta1",
+      "name": "adexchangebuyer2",
+      "version": "v2beta1",
+      "title": "Ad Exchange Buyer API II",
+      "description": "Accesses the latest features for managing Authorized Buyers accounts, Real-Time Bidding configurations and auction metrics, and Marketplace programmatic deals.",
+      "discoveryRestUrl": "https://adexchangebuyer.googleapis.com/$discovery/rest?version=v2beta1",
+      "icons": {
+        "x16": "https://www.gstatic.com/images/branding/product/1x/googleg_16dp.png",
+        "x32": "https://www.gstatic.com/images/branding/product/1x/googleg_32dp.png"
+      },
+      "documentationLink": "https://developers.google.com/authorized-buyers/apis/reference/rest/",
+      "preferred": true
+    },
+    {
+      "kind": "discovery#directoryItem",
+      "id": "adexperiencereport:v1",
+      "name": "adexperiencereport",
+      "version": "v1",
+      "title": "Ad Experience Report API",
+      "description": "Views Ad Experience Report data, and gets a list of sites that have a significant number of annoying ads.",
+      "discoveryRestUrl": "https://adexperiencereport.googleapis.com/$discovery/rest?version=v1",
+      "icons": {
+        "x16": "https://www.gstatic.com/images/branding/product/1x/googleg_16dp.png",
+        "x32": "https://www.gstatic.com/images/branding/product/1x/googleg_32dp.png"
+      },
+      "documentationLink": "https://developers.google.com/ad-experience-report/",
+      "preferred": true
+    },
+    {
+      "kind": "discovery#directoryItem",
+      "id": "admin:datatransfer_v1",
+      "name": "admin",
+      "version": "datatransfer_v1",
+      "title": "Admin SDK API",
+      "description": "Admin SDK lets administrators of enterprise domains to view and manage resources like user, groups etc. It also provides audit and usage reports of domain.",
+      "discoveryRestUrl": "https://admin.googleapis.com/$discovery/rest?version=datatransfer_v1",
+      "icons": {
+        "x16": "https://www.gstatic.com/images/branding/product/1x/googleg_16dp.png",
+        "x32": "https://www.gstatic.com/images/branding/product/1x/googleg_32dp.png"
+      },
+      "documentationLink": "https://developers.google.com/admin-sdk/",
+      "preferred": false
+    },
+    {
+      "kind": "discovery#directoryItem",
+      "id": "admin:directory_v1",
+      "name": "admin",
+      "version": "directory_v1",
+      "title": "Admin SDK API",
+      "description": "Admin SDK lets administrators of enterprise domains to view and manage resources like user, groups etc. It also provides audit and usage reports of domain.",
+      "discoveryRestUrl": "https://admin.googleapis.com/$discovery/rest?version=directory_v1",
+      "icons": {
+        "x16": "https://www.gstatic.com/images/branding/product/1x/googleg_16dp.png",
+        "x32": "https://www.gstatic.com/images/branding/product/1x/googleg_32dp.png"
+      },
+      "documentationLink": "https://developers.google.com/admin-sdk/",
+      "preferred": false
+    },
+    {
+      "kind": "discovery#directoryItem",
+      "id": "admin:reports_v1",
+      "name": "admin",
+      "version": "reports_v1",
+      "title": "Admin SDK API",
+      "description": "Admin SDK lets administrators of enterprise domains to view and manage resources like user, groups etc. It also provides audit and usage reports of domain.",
+      "discoveryRestUrl": "https://admin.googleapis.com/$discovery/rest?version=reports_v1",
+      "icons": {
+        "x16": "https://www.gstatic.com/images/branding/product/1x/googleg_16dp.png",
+        "x32": "https://www.gstatic.com/images/branding/product/1x/googleg_32dp.png"
+      },
+      "documentationLink": "https://developers.google.com/admin-sdk/",
+      "preferred": true
+    },
+    {
+      "kind": "discovery#directoryItem",
+      "id": "admob:v1beta",
+      "name": "admob",
+      "version": "v1beta",
+      "title": "AdMob API",
+      "description": "The AdMob API allows publishers to programmatically get information about their AdMob account.",
+      "discoveryRestUrl": "https://admob.googleapis.com/$discovery/rest?version=v1beta",
+      "icons": {
+        "x16": "https://www.gstatic.com/images/branding/product/1x/googleg_16dp.png",
+        "x32": "https://www.gstatic.com/images/branding/product/1x/googleg_32dp.png"
+      },
+      "documentationLink": "https://developers.google.com/admob/api/",
+      "preferred": false
+    },
+    {
+      "kind": "discovery#directoryItem",
+      "id": "bigquery:v2",
+      "name": "bigquery",
+      "version": "v2",
+      "title": "BigQuery API",
+      "description": "A data platform for customers to create, manage, share and query data.",
+      "discoveryRestUrl": "https://bigquery.googleapis.com/$discovery/rest?version=v2",
+      "icons": {
+        "x16": "https://www.gstatic.com/images/branding/product/1x/googleg_16dp.png",
+        "x32": "https://www.gstatic.com/images/branding/product/1x/googleg_32dp.png"
+      },
+      "documentationLink": "https://cloud.google.com/bigquery/",
+      "preferred": true
+    }
+  ]
+}

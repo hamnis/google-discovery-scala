@@ -83,18 +83,29 @@ def doConfigure(project: Project): Project =
 
 val core = (projectMatrix in file("core"))
   .jvmPlatform(scalaVersions = Seq(scala212, scala213, scala3))
-  .jsPlatform(scalaVersions = Seq(scala212, scala213, scala3))
+  .jsPlatform(
+    scalaVersions = Seq(scala212, scala213, scala3),
+    settings = Seq(
+      scalaJSUseMainModuleInitializer := true,
+      scalaJSLinkerConfig ~= {
+        _.withModuleKind(ModuleKind.ESModule).withModuleKind(ModuleKind.CommonJSModule)
+      }
+    )
+  )
   .configure(doConfigure)
   .settings(
     name := "google-discovery-core",
     javacOptions ++= List("--release", "8"),
-    scalacOptions ++= List("-deprecation", "-feature"),
+    scalacOptions ++= List("-deprecation", "-feature", "-language:higherKinds"),
     libraryDependencies ++= Seq(
       "io.circe" %%% "circe-core" % circeVersion,
       "io.circe" %%% "circe-generic" % circeVersion,
       "io.circe" %%% "circe-jawn" % circeVersion,
-      "org.scalameta" %%% "munit" % "0.7.29" % Test,
-      "org.http4s" %%% "http4s-core" % "0.23.23",
+      "org.http4s" %%% "http4s-core" % "0.23.24",
+      "org.http4s" %%% "http4s-circe" % "0.23.24",
+      "org.http4s" %%% "http4s-client" % "0.23.24",
+      "org.scalameta" %%% "munit" % "1.0.0-M10" % Test,
+      "org.typelevel" %%% "munit-cats-effect" % "2.0.0-M4" % Test,
       "org.typelevel" %%% "paiges-cats" % "0.4.3"
     )
   )
