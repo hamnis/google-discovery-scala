@@ -3,7 +3,7 @@ package discovery
 import cats.effect.kernel.Concurrent
 import discovery.DiscoveryClient.AsJson
 import io.circe.{Decoder, Encoder, Json}
-import org.http4s.{EntityDecoder, Request}
+import org.http4s.{EntityDecoder, Request, Uri}
 import org.http4s.client.{Client => Http4sClient}
 import org.http4s.implicits._
 
@@ -11,12 +11,15 @@ class DiscoveryClient[F[_]: Concurrent](client: Http4sClient[F]) {
   implicit def entityDecoder[A](implicit d: Decoder[A]): EntityDecoder[F, A] =
     org.http4s.circe.jsonOf
 
-  def getCollection =
+  def getCollection: F[DiscoveryCollection] =
     client.expect[DiscoveryCollection](
       Request[F](uri = uri"https://discovery.googleapis.com/discovery/v1/apis"))
 
-  def getDiscovery(item: DiscoveryCollection.Item) =
-    client.expectOption[AsJson[Discovery]](Request[F](uri = item.discoveryRestUrl))
+  def getDiscovery(item: DiscoveryCollection.Item): F[Option[AsJson[Discovery]]] =
+    getDiscoveryByUri(item.discoveryRestUrl)
+
+  def getDiscoveryByUri(uri: Uri): F[Option[AsJson[Discovery]]] =
+    client.expectOption[AsJson[Discovery]](Request[F](uri = uri))
 }
 
 object DiscoveryClient {
