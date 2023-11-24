@@ -1,0 +1,7 @@
+# generate bigquery
+$ exec ./serve.sh
+$ exists server.pid
+> discoveryFetch
+$ exec ./kill.sh
+$ exists src/main/discovery/discovery.json
+> compile
