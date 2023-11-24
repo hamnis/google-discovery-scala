@@ -13,6 +13,7 @@ object DiscoveryPlugin extends AutoPlugin {
     lazy val discoveryGenerate =
       taskKey[Seq[File]]("Generate Scala case classes for the given Discovery Document")
     lazy val discoveryPackage = settingKey[String]("Package for generated sources")
+    lazy val discoveryDocument = taskKey[Discovery]("discovery document")
   }
   import autoImport._
 
@@ -23,11 +24,14 @@ object DiscoveryPlugin extends AutoPlugin {
       val files = (Compile / managedSources).value
       files.map(f => (f, f.relativeTo(base).get.getPath))
     },
+    Compile / discoveryDocument := {
+      val f = (Compile / discoveryGenerate).inputFiles.head
+      jawn.decodePath[Discovery](f).fold(throw _, identity)
+    },
     Compile / discoveryGenerate / fileInputs ++= (Compile / unmanagedSourceDirectories).value
       .map(_.getParentFile.toGlob / "discovery" / "*.json"),
     Compile / discoveryGenerate := {
-      val f = (Compile / discoveryGenerate).inputFiles.head
-      val discovery = jawn.decodePath[Discovery](f).fold(throw _, identity)
+      val discovery = (Compile / discoveryDocument).value
       val mangedDir = (Compile / sourceManaged).value / "scala"
       val packageName = discoveryPackage.value
 
