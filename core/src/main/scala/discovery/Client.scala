@@ -71,7 +71,7 @@ object Client {
         }.toList
 
         Client(
-          resourceName.capitalize,
+          resourceName.capitalize + "Client",
           discovery.baseUrl.withPath(discovery.baseUrl.path.dropEndsWithSlash),
           resolved)
       }
