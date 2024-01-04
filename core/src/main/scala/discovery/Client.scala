@@ -2,6 +2,7 @@ package discovery
 
 import org.http4s.{Method, Uri}
 import org.typelevel.paiges.Doc
+import org.typelevel.paiges.Document.ops._
 
 case class Client(name: String, baseUri: Uri, methods: List[Client.ResolvedInvocation]) {
   def imports =
@@ -36,7 +37,16 @@ case class Client(name: String, baseUri: Uri, methods: List[Client.ResolvedInvoc
         ) ++ methods.map(_.toCode + Doc.hardLine)
       )
 
-    definition.render(80)
+    val definitions = methods.flatMap(_.queryParams.caseClass).distinct
+
+    val companion =
+      if (definitions.isEmpty) Doc.empty
+      else
+        Doc.hardLine + Doc.text(s"object ${name} ") + Code.blocks(
+          definitions.map(cc => CaseClass.renderClass(cc))
+        )
+
+    (definition + companion).render(80)
   }
 }
 
@@ -49,15 +59,22 @@ object Client {
         case "boolean" => Type("Boolean")
         case _ => Type("String")
       }
-      Parameter(name, typ, Some(param.description), param.required.getOrElse(false))
+      Parameter(
+        name,
+        typ,
+        Some(param.description),
+        param.required.getOrElse(false)
+      )
     }
 
     val resolveTypes = discovery.schemas.keys.map(typ => typ -> Type.apply(typ)).toMap
 
     resources.flatMap { case (resourceName, resource) =>
       resource.methods.values.map { invocations =>
+        val resourceTypeName = resourceName.capitalize
         val resolved = invocations.methods.map { case (method, invocation) =>
           ResolvedInvocation(
+            resourceTypeName,
             method,
             Method.fromString(invocation.httpMethod).right.get,
             Template(
@@ -65,13 +82,23 @@ object Client {
               invocation.parameters.order.flatMap(p =>
                 invocation.parameters.parameters.get(p).map(mkParameter(p, _)))
             ),
+            QueryParams(
+              invocation.httpMethod.toLowerCase.capitalize,
+              invocation.parameters.parameters
+                .collect {
+                  case (k, v) if v.`type` == "query" =>
+                    mkParameter(k, v.copy(required = None)).copy(default = Some(Doc.text("None")))
+                }
+                .toList
+                .sortBy(_.name)
+            ),
             invocation.request.flatMap(s => s.$ref).flatMap(resolveTypes.get),
             invocation.response.flatMap(s => s.$ref).flatMap(resolveTypes.get)
           )
         }.toList
 
         Client(
-          resourceName.capitalize + "Client",
+          resourceTypeName + "Client",
           discovery.baseUrl.withPath(discovery.baseUrl.path.dropEndsWithSlash),
           resolved)
       }
@@ -79,9 +106,11 @@ object Client {
   }
 
   case class ResolvedInvocation(
+      resourceTypeName: String,
       name: String,
       method: Method,
       template: Template,
+      queryParams: QueryParams,
       requestType: Option[Type],
       responseType: Option[Type]
   ) {
@@ -90,8 +119,25 @@ object Client {
 
     def toCode = {
       val assigned = {
+        def paramsAsDoc(params: List[Parameter]) = Doc
+          .intercalate(Doc.comma + Doc.line, params.map(p => p.doc))
+
         val left = Doc.text(s"def ${name}(") + Doc.hardLine
-        val params = template.paramsAsDoc + Doc.hardLine + Code.rparens
+        val qp =
+          if (queryParams.isEmpty) {
+            val paramTypeName = Type(resourceTypeName + "Client." + queryParams.typeName)
+            template.params ::: List(
+              Parameter(
+                "query",
+                paramTypeName,
+                None,
+                required = true,
+                default =
+                  if (queryParams.isEmpty) None
+                  else
+                    Some(paramTypeName.asDoc + Doc.text("()"))))
+          } else template.params
+        val params = paramsAsDoc(qp) + Doc.hardLine + Code.rparens
         val inputParam = requestType
           .map(pt =>
             Code

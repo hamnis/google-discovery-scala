@@ -153,13 +153,15 @@ case class CaseClass(
 
 object CaseClass {
 
+  def renderClass(cc: CaseClass) = {
+    val prefix = Doc.text(s"final case class ${cc.name}")
+    val params = if (cc.parameters.isEmpty) Doc.text("()") else Code.paramsToDoc(cc.parameters)
+    prefix + params
+  }
+
   implicit val renderer: Document[CaseClass] =
     Document.instance { cc =>
-      def render: Doc = {
-        val prefix = Doc.text(s"final case class ${cc.name}")
-        val params = if (cc.parameters.isEmpty) Doc.text("()") else Code.paramsToDoc(cc.parameters)
-        prefix + params
-      }
+      val render = renderClass(cc)
 
       def renderCompanion: Doc = {
         val prefix = Doc.text(s"object ${cc.name} ")
@@ -222,7 +224,8 @@ case class Parameter(
     name: String,
     `type`: Type,
     description: Option[String],
-    required: Boolean
+    required: Boolean,
+    default: Option[Doc] = None
 ) {
   def literal = Code.literal(Doc.text(name))
   def term = Code.term(name)
@@ -233,6 +236,9 @@ case class Parameter(
 object Parameter {
   implicit val renderer: Document[Parameter] = Document.instance { p =>
     val comment = p.description.fold(Doc.empty)(c => Doc.text("// ") + Doc.text(c) + Doc.hardLine)
-    comment + Code.ascribed(p.term, p.asDoc)
+    val defaultOrEmpty = p.default
+      .map(d => Doc.char('=').tightBracketBy(Doc.lineOrSpace, Doc.lineOrSpace) + d)
+      .getOrElse(Doc.empty)
+    comment + Code.ascribed(p.term, p.asDoc) + defaultOrEmpty
   }
 }
