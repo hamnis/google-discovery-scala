@@ -12,29 +12,40 @@ case class Client(name: String, baseUri: Uri, methods: List[Client.ResolvedInvoc
       "org.http4s.implicits._",
       "org.http4s.circe._",
       "org.http4s.client.Client",
-      "io.circe.{Encoder, Decoder}"
+      "io.circe._"
     ) ++ methods.flatMap(m => m.findTypes.flatMap(Type.findImports(_, Nil)))
+
+  def writes = if (methods.exists(_.requestType.isDefined)) {
+    List(
+      Code.assigment(
+        Code.ascribed(
+          Doc.text("private implicit def entityEncoder[A: Encoder]"),
+          Doc.text("EntityEncoder[F, A]")),
+        Doc.text("jsonEncoderOf[F, A]")
+      ))
+  } else Nil
+
+  def reads = if (methods.exists(_.responseType.isDefined)) {
+    List(
+      Code.assigment(
+        Code.ascribed(
+          Doc.text("private implicit def entityDecoder[A: Decoder]"),
+          Doc.text("EntityDecoder[F, A]")),
+        Doc.text("jsonOf[F, A]")
+      ))
+  } else Nil
 
   def toCode = {
     val definition = Doc.text(s"class ${name}[F[_]: Concurrent](client: Client[F]) ") +
       Code.blocks(
         List(
-          Code.assigment(
-            Code.ascribed(
-              Doc.text("private implicit def entityEncoder[A: Encoder]"),
-              Doc.text("EntityEncoder[F, A]")),
-            Doc.text("jsonEncoderOf[F, A]")
-          ),
-          Code.assigment(
-            Code.ascribed(
-              Doc.text("private implicit def entityDecoder[A: Decoder]"),
-              Doc.text("EntityDecoder[F, A]")),
-            Doc.text("jsonOf[F, A]")
-          ),
-          Code.assigment(
-            Doc.text("val baseUri"),
-            Code.interpolate("uri", Doc.text(baseUri.renderString)) + Doc.hardLine)
-        ) ++ methods.map(_.toCode + Doc.hardLine)
+          writes,
+          reads,
+          List(
+            Code.assigment(
+              Doc.text("val baseUri"),
+              Code.interpolate("uri", Doc.text(baseUri.renderString)) + Doc.hardLine)
+          )).flatten ++ methods.map(_.toCode + Doc.hardLine)
       )
 
     val definitions = methods.flatMap(_.queryParams.caseClass).distinct
@@ -124,7 +135,7 @@ object Client {
 
         val left = Doc.text(s"def ${name}(") + Doc.hardLine
         val qp =
-          if (queryParams.isEmpty) {
+          if (queryParams.nonEmpty) {
             val paramTypeName = Type(resourceTypeName + "Client." + queryParams.typeName)
             template.params ::: List(
               Parameter(
@@ -160,7 +171,7 @@ object Client {
             Doc.comma + Doc.lineOrSpace,
             List(
               Code.assigment(Doc.text("method"), Doc.text(s"Method.${method.name}")),
-              Code.assigment(Doc.text("uri"), template.toCodeDoc))
+              Code.assigment(Doc.text("uri"), template.toCodeDoc(queryParams)))
           )
           .tightBracketBy(
             Doc.text("Request[F]("),

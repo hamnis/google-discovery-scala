@@ -5,6 +5,7 @@ import org.typelevel.paiges.Document.ops._
 
 sealed trait Type extends Product with Serializable {
   def asDoc: Doc
+  def asString = asDoc.render(80)
 }
 
 object Type {
@@ -65,7 +66,7 @@ object TypeClassInstance {
 case class EnumType(name: String, cases: List[String], descriptions: List[String])
     extends GeneratedType {
 
-  override def imports: List[String] = List("io.circe._", "io.circe.syntax._")
+  override def imports: List[String] = List("io.circe._")
 }
 
 object EnumType {
@@ -144,8 +145,15 @@ case class CaseClass(
 ) extends GeneratedType {
   val asType: Type = Type(name)
 
+  def jsonInstancesImport =
+    if (parameters.exists { p =>
+        val string = p.`type`.asString
+        string.contains("FiniteDuration") || string.contains("ByteVector")
+      }) List("JsonInstances._")
+    else Nil
+
   def imports =
-    List("JsonInstances._", "io.circe._", "io.circe.syntax._") ::: parameters
+    jsonInstancesImport ::: List("io.circe._", "io.circe.syntax._") ::: parameters
       .flatMap(p => Type.findImports(p.`type`, Nil))
       .distinct
       .reverse

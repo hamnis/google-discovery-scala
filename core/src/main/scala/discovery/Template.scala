@@ -13,10 +13,10 @@ case class Template(path: String, params: List[Parameter]) {
   def paramsAsDoc = Doc
     .intercalate(Doc.comma + Doc.line, params.map(p => Parameter.renderer.document(p)))
 
-  def toCodeDoc = {
+  def toCodeDoc(query: QueryParams) = {
     val segment = Doc.space + Doc.text("/") + Doc.space
     val rendered = Doc.intercalate(segment, path.split("/").map(expand))
-    Doc.text("baseUri") + segment + rendered
+    Doc.text("baseUri") + segment + rendered + query.toQueryParamsDoc
   }
 }
 
