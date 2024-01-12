@@ -7,6 +7,7 @@ import org.http4s.Uri
 case class Discovery(
     schemas: Map[String, Schema],
     revision: String,
+    version: String,
     baseUrl: Uri,
     resources: Option[Resources]
 )
