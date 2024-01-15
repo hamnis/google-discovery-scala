@@ -51,20 +51,24 @@ object Codegen {
     Traverse[List]
       .traverse[F, (String, Schema), Parameter](schema.properties.toList.flatMap(_.toList)) {
         case (propertyName, property) =>
-          mkProperty(name, propertyName, property)
+          mkSchemaProperty(name, propertyName, property)
       }
       .flatMap(parameters => Writer.tell(CaseClass(name, parameters) :: Nil))
       .written
   }
 
-  def mkProperty(
+  def mkSchemaProperty(
       parentName: String,
       name: String,
       property: Schema): Writer[List[GeneratedType], Parameter] =
-    mkPropertyType(parentName, name, property).map(t =>
-      Parameter(name, t, property.description, required = false))
+    mkSchemaPropertyType(parentName, name, property).map(t =>
+      Parameter(
+        name,
+        t,
+        property.description,
+        required = property.description.exists(_.toLowerCase().contains("[required]"))))
 
-  def mkPropertyType(
+  def mkSchemaPropertyType(
       parentName: String,
       name: String,
       property: Schema): Writer[List[GeneratedType], Type] = {
@@ -91,7 +95,7 @@ object Codegen {
 
     val array = property.`type`.collect { case "array" =>
       property.items.map { p =>
-        mkPropertyType(parentName, inflector.singularize(name).capitalize, p).map { t =>
+        mkSchemaPropertyType(parentName, inflector.singularize(name).capitalize, p).map { t =>
           Type.list(t)
         }
       }
@@ -115,7 +119,7 @@ object Codegen {
           )
         }
         .orElse(property.additionalProperties.map { p =>
-          mkPropertyType(parentName, name.capitalize, p).map(t => Type.map(Type.apply("String"), t))
+          mkSchemaPropertyType(parentName, name.capitalize, p).map(t => Type.map(Type.apply("String"), t))
         })
         .getOrElse(Writer(List.empty[GeneratedType], Type.apply("JsonObject")))
     }
