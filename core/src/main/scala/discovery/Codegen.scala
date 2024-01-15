@@ -119,7 +119,8 @@ object Codegen {
           )
         }
         .orElse(property.additionalProperties.map { p =>
-          mkSchemaPropertyType(parentName, name.capitalize, p).map(t => Type.map(Type.apply("String"), t))
+          mkSchemaPropertyType(parentName, name.capitalize, p).map(t =>
+            Type.map(Type.apply("String"), t))
         })
         .getOrElse(Writer(List.empty[GeneratedType], Type.apply("JsonObject")))
     }
