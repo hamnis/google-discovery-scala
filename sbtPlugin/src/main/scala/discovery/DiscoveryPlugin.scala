@@ -1,9 +1,8 @@
 package discovery
 
-import io.circe.*
-import sbt.Keys.*
-import sbt.*
-import sbt.nio.Keys.*
+import io.circe._
+import sbt.Keys._
+import sbt._
 
 object DiscoveryPlugin extends AutoPlugin {
 
@@ -24,12 +23,7 @@ object DiscoveryPlugin extends AutoPlugin {
       val files = (Compile / managedSources).value
       files.map(f => (f, f.relativeTo(base).get.getPath))
     },
-    Compile / discoveryDocument := {
-      val f = (Compile / discoveryGenerate).inputFiles.head
-      jawn.decodePath[Discovery](f).fold(throw _, identity)
-    },
-    Compile / discoveryGenerate / fileInputs ++= (Compile / unmanagedSourceDirectories).value
-      .map(_.getParentFile.toGlob / "discovery" / "*.json"),
+    Compile / discoveryDocument := parseDiscovery(baseDirectory.value),
     Compile / discoveryGenerate := {
       val discovery = (Compile / discoveryDocument).value
       val mangedDir = (Compile / sourceManaged).value / "scala"
@@ -38,4 +32,12 @@ object DiscoveryPlugin extends AutoPlugin {
       Codegen.generateFromDiscovery(packageName, discovery).map(_.writeTo(mangedDir.toPath).toFile)
     }
   )
+
+  def discoveryDocumentFile(basedir: File) =
+    basedir / "src" / "main" / "discovery" / "discovery.json"
+
+  def parseDiscovery(basedir: File) = {
+    val f = discoveryDocumentFile(basedir)
+    jawn.decodeFile[Discovery](f).fold(throw _, identity)
+  }
 }
