@@ -4,14 +4,12 @@ import sbt._
 import Keys._
 
 import java.net.HttpURLConnection
-import java.nio.channels.Channels
 
 object ResolveDiscoveryPlugin extends AutoPlugin {
   override def trigger = NoTrigger
   val discoveryCollectionUri = url("https://discovery.googleapis.com/discovery/v1/apis")
 
   object autoImport {
-    lazy val discoveryDirectory = settingKey[File]("directory for saved discovery.json")
     lazy val discoveryUri = settingKey[URL](
       "uri for discovery document. e.g: url(\"https://bigquery.googleapis.com/discovery/v1/apis/bigquery/v2/rest\")")
     lazy val discoveryFetch =
@@ -53,10 +51,9 @@ object ResolveDiscoveryPlugin extends AutoPlugin {
     }
 
   override def projectSettings: Seq[Def.Setting[_]] = Seq(
-    discoveryDirectory := baseDirectory.value / "src" / "main" / "discovery" / "discovery.json",
     discoveryFetch := {
       val uri = discoveryUri.value
-      val path = discoveryDirectory.value
+      val path = DiscoveryPlugin.discoveryDocumentFile(baseDirectory.value)
       val log = streams.value.log
       val conn = uri.openConnection()
       conn.connect()

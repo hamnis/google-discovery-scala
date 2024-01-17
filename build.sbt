@@ -4,7 +4,7 @@ val scala212 = "2.12.18"
 val scala213 = "2.13.12"
 val scala3 = "3.3.1"
 
-val baseVersion = "0.3"
+val baseVersion = "0.4"
 
 inThisBuild(
   Seq(
@@ -20,7 +20,6 @@ inThisBuild(
         commands = List(
           """echo "$PGP_SECRET" | base64 -d -i - > /tmp/signing-key.gpg""",
           """echo "$PGP_PASSPHRASE" | gpg --pinentry-mode loopback --passphrase-fd 0 --import /tmp/signing-key.gpg"""
-          // """(echo "$PGP_PASSPHRASE"; echo; echo) | gpg --command-fd 0 --pinentry-mode loopback --change-passphrase $(gpg --list-secret-keys --with-colons 2> /dev/null | grep '^sec:' | cut --delimiter ':' --fields 5 | tail -n 1)"""
         ),
         env = Map(
           "PGP_PASSPHRASE" -> "${{ secrets.PGP_PASSPHRASE }}",
@@ -83,30 +82,21 @@ def doConfigure(project: Project): Project =
 
 val core = (projectMatrix in file("core"))
   .jvmPlatform(scalaVersions = Seq(scala212, scala213, scala3))
-  .jsPlatform(
-    scalaVersions = Seq(scala212, scala213, scala3),
-    settings = Seq(
-      scalaJSUseMainModuleInitializer := true,
-      scalaJSLinkerConfig ~= {
-        _.withModuleKind(ModuleKind.ESModule).withModuleKind(ModuleKind.CommonJSModule)
-      }
-    )
-  )
   .configure(doConfigure)
   .settings(
     name := "google-discovery-core",
     javacOptions ++= List("--release", "8"),
     scalacOptions ++= List("-deprecation", "-feature", "-language:higherKinds"),
     libraryDependencies ++= Seq(
-      "io.circe" %%% "circe-core" % circeVersion,
-      "io.circe" %%% "circe-generic" % circeVersion,
-      "io.circe" %%% "circe-jawn" % circeVersion,
-      "org.http4s" %%% "http4s-core" % "0.23.24",
-      "org.http4s" %%% "http4s-circe" % "0.23.24",
-      "org.http4s" %%% "http4s-client" % "0.23.24",
-      "org.scalameta" %%% "munit" % "1.0.0-M10" % Test,
-      "org.typelevel" %%% "munit-cats-effect" % "2.0.0-M4" % Test,
-      "org.typelevel" %%% "paiges-cats" % "0.4.3"
+      "io.circe" %% "circe-core" % circeVersion,
+      "io.circe" %% "circe-generic" % circeVersion,
+      "io.circe" %% "circe-jawn" % circeVersion,
+      "org.http4s" %% "http4s-core" % "0.23.25",
+      "org.http4s" %% "http4s-circe" % "0.23.25",
+      "org.http4s" %% "http4s-client" % "0.23.25",
+      "org.scalameta" %% "munit" % "1.0.0-M10" % Test,
+      "org.typelevel" %% "munit-cats-effect" % "2.0.0-M4" % Test,
+      "org.typelevel" %% "paiges-cats" % "0.4.3"
     )
   )
 
