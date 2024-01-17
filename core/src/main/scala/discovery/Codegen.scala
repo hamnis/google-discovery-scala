@@ -2,6 +2,7 @@ package discovery
 
 import cats.Traverse
 import cats.data.Writer
+import org.typelevel.paiges.Doc
 import org.typelevel.paiges.Document.ops._
 
 object Codegen {
@@ -61,12 +62,16 @@ object Codegen {
       parentName: String,
       name: String,
       property: Schema): Writer[List[GeneratedType], Parameter] =
-    mkSchemaPropertyType(parentName, name, property).map(t =>
+    mkSchemaPropertyType(parentName, name, property).map { t =>
+      val isRequired = property.description.exists(_.toLowerCase().contains("[required]"))
       Parameter(
         name,
         t,
         property.description,
-        required = property.description.exists(_.toLowerCase().contains("[required]"))))
+        required = isRequired,
+        default = if (!isRequired) Some(Doc.text("None")) else None
+      )
+    }
 
   def mkSchemaPropertyType(
       parentName: String,
