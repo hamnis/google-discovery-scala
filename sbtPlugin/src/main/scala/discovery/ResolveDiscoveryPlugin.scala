@@ -6,6 +6,8 @@ import Keys._
 import java.net.HttpURLConnection
 
 object ResolveDiscoveryPlugin extends AutoPlugin {
+  import DiscoveryPlugin.autoImport._
+
   override def trigger = NoTrigger
   val discoveryCollectionUri = url("https://discovery.googleapis.com/discovery/v1/apis")
 
@@ -53,7 +55,7 @@ object ResolveDiscoveryPlugin extends AutoPlugin {
   override def projectSettings: Seq[Def.Setting[_]] = Seq(
     discoveryFetch := {
       val uri = discoveryUri.value
-      val path = DiscoveryPlugin.discoveryDocumentFile(baseDirectory.value)
+      val path = (Compile / discoveryFile).value
       val log = streams.value.log
       val conn = uri.openConnection()
       conn.connect()
