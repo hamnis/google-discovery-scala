@@ -10,43 +10,21 @@ case class Client(name: String, baseUri: Uri, methods: List[Client.ResolvedInvoc
       "cats.effect.Concurrent",
       "org.http4s._",
       "org.http4s.implicits._",
-      "org.http4s.circe._",
-      "org.http4s.client.Client",
-      "io.circe._"
+      "org.http4s.client.Client"
     ) ++ methods.flatMap(m => m.findTypes.flatMap(Type.findImports(_, Nil)))
 
-  def writes = if (methods.exists(_.requestType.isDefined)) {
-    List(
-      Code.assigment(
-        Code.ascribed(
-          Doc.text("private implicit def entityEncoder[A: Encoder]"),
-          Doc.text("EntityEncoder[F, A]")),
-        Doc.text("jsonEncoderOf[F, A]")
-      ))
-  } else Nil
-
-  def reads = if (methods.exists(_.responseType.isDefined)) {
-    List(
-      Code.assigment(
-        Code.ascribed(
-          Doc.text("private implicit def entityDecoder[A: Decoder]"),
-          Doc.text("EntityDecoder[F, A]")),
-        Doc.text("jsonOf[F, A]")
-      ))
-  } else Nil
-
   def toCode = {
-    val definition = Doc.text(s"class ${name}[F[_]: Concurrent](client: Client[F]) ") +
-      Code.blocks(
-        List(
-          writes,
-          reads,
+    val definition =
+      Doc.text(
+        s"class ${name}[F[_]: Concurrent](client: Client[F]) extends AbstractClient[F](client) ") +
+        Code.blocks(
           List(
-            Code.assigment(
-              Doc.text("val baseUri"),
-              Code.interpolate("uri", Doc.text(baseUri.renderString)) + Doc.hardLine)
-          )).flatten ++ methods.map(_.toCode + Doc.hardLine)
-      )
+            List(
+              Code.assigment(
+                Doc.text("val baseUri"),
+                Code.interpolate("uri", Doc.text(baseUri.renderString)) + Doc.hardLine)
+            )).flatten ++ methods.map(_.toCode + Doc.hardLine)
+        )
 
     val definitions = methods.flatMap(_.queryParams.caseClass).distinct
 
@@ -161,11 +139,11 @@ object Client {
 
       val returnType =
         Type
-          .constructor(Type("F"), responseType.map(Type.option).getOrElse(Type.apply("Status")))
+          .constructor(Type("F"), responseType.getOrElse(Type.apply("Status")))
           .asDoc
 
       val request = {
-        val withBody = if (requestType.isDefined) Doc.text(".withEntity(input)") else Doc.empty
+        val withBody = if (requestType.isDefined) Doc.text("(input)") else Doc.empty
         Doc
           .intercalate(
             Doc.comma + Doc.lineOrSpace,
@@ -174,14 +152,14 @@ object Client {
               Code.assigment(Doc.text("uri"), template.toCodeDoc(queryParams)))
           )
           .tightBracketBy(
-            Doc.text("Request[F]("),
+            if (requestType.isDefined) Doc.text("requestWithBody(") else Doc.text("request("),
             Code.rparens
           ) + withBody
       }
       val clientCall = responseType
         .map(t =>
           t.asDoc
-            .tightBracketBy(Doc.text("client.expectOption["), Code.rbracket))
+            .tightBracketBy(Doc.text("expectJson["), Code.rbracket))
         .getOrElse(Doc.text("client.status")) + Code.lparens
 
       Code.assigment(

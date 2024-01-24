@@ -29,7 +29,8 @@ object Codegen {
   }
 
   def generateFromDiscovery(packageName: String, discovery: Discovery) = {
-    val instances = Codegen.jsonInstances(packageName)
+    val static = Codegen.jsonInstances(packageName) :: Codegen.abstractClient(
+      packageName) :: Codegen.googleError(packageName) :: Nil
     val clients = Client
       .clientsFrom(discovery)
       .map(c =>
@@ -54,7 +55,7 @@ object Codegen {
           generatedType.doc.render(80)
         )
       }
-    instances :: models ::: clients
+    static ::: models ::: clients
   }
 
   def mkSchema(name: String, schema: Schema): List[GeneratedType] = {
@@ -73,13 +74,12 @@ object Codegen {
       name: String,
       property: Schema): Writer[List[GeneratedType], Parameter] =
     mkSchemaPropertyType(parentName, name, property).map { t =>
-      val isRequired = property.description.exists(_.toLowerCase().contains("[required]"))
       Parameter(
         name,
         t,
         property.description,
-        required = isRequired,
-        default = if (!isRequired) Some(Doc.text("None")) else None
+        required = false,
+        default = Some(Doc.text("None"))
       )
     }
 
@@ -171,5 +171,91 @@ object Codegen {
         |}
         |""".stripMargin
     }
+  )
+
+  def abstractClient(packageName: String): SourceFile = SourceFile(
+    packageName,
+    "AbstractClient",
+    List(
+      "cats.syntax.all._",
+      "cats.effect.Concurrent",
+      "io.circe._",
+      "org.http4s._",
+      "org.http4s.client.Client"),
+    """class AbstractClient[F[_]](client: Client[F])(implicit F: Concurrent[F]) {
+      |  private implicit def entityDecoder[A: Decoder]: EntityDecoder[F, A] =
+      |    org.http4s.circe.jsonOf[F, A]
+      |  private implicit def entityEncoder[A: Encoder]: EntityEncoder[F, A] =
+      |    org.http4s.circe.jsonEncoderOf[F, A]
+      |
+      |  protected def request(uri: Uri, method: Method) =
+      |    Request[F](uri = uri, method = method)
+      |
+      |  protected def requestWithBody[A: Encoder](uri: Uri, method: Method)(input: A) =
+      |    Request[F](uri = uri, method = method).withEntity(input)
+      |
+      |  def expectJson[A: Decoder](req: Request[F]) =
+      |    client.expectOr[A](req)(res => res.as[GoogleError].flatMap(err => F.raiseError(err)))
+      |}
+      |
+      |""".stripMargin
+  )
+
+  def googleError(packageName: String): SourceFile = SourceFile(
+    packageName,
+    "GoogleError",
+    List("io.circe.Decoder"),
+    """case class GoogleError(
+      |    code: Option[Int],
+      |    message: Option[String],
+      |    errors: List[GoogleError.ErrorInfo],
+      |    details: List[GoogleError.Details]
+      |) extends Exception(message.getOrElse(""))
+      |
+      |object GoogleError {
+      |  final case class ErrorInfo(
+      |      domain: Option[String],
+      |      reason: Option[String],
+      |      message: Option[String],
+      |      location: Option[String],
+      |      locationType: Option[String]
+      |  )
+      |
+      |  object ErrorInfo {
+      |    implicit val decoder: Decoder[ErrorInfo] =
+      |      Decoder.forProduct5("domain", "reason", "message", "location", "locationType")(apply)
+      |  }
+      |
+      |  final case class Details(
+      |      `type`: Option[String],
+      |      reason: Option[String],
+      |      parameterViolations: List[ParameterViolation])
+      |  object Details {
+      |    implicit val decoder: Decoder[Details] = Decoder.instance(c =>
+      |      for {
+      |        t <- c.get[Option[String]]("@type")
+      |        r <- c.get[Option[String]]("reason")
+      |        v <- c.get[Option[List[ParameterViolation]]]("parameterViolations")
+      |      } yield Details(t, r, v.getOrElse(Nil)))
+      |  }
+      |
+      |  final case class ParameterViolation(parameter: Option[String], description: Option[String])
+      |
+      |  object ParameterViolation {
+      |    implicit val decoder: Decoder[ParameterViolation] =
+      |      Decoder.forProduct2("parameter", "description")(apply)
+      |  }
+      |
+      |  implicit val decoder: Decoder[GoogleError] = Decoder
+      |    .instance(c =>
+      |      for {
+      |        code <- c.get[Option[Int]]("code")
+      |        message <- c.get[Option[String]]("message")
+      |        errors <- c.get[Option[List[ErrorInfo]]]("errors")
+      |        details <- c.get[Option[List[Details]]]("details")
+      |      } yield GoogleError(code, message, errors.getOrElse(Nil), details.getOrElse(Nil)))
+      |    .at("error")
+      |}
+      |""".stripMargin
   )
 }
