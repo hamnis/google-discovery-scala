@@ -1,3 +1,5 @@
+import scala.collection.immutable.Seq
+
 val circeVersion = "0.14.6"
 
 val scala212 = "2.12.18"
@@ -98,6 +100,9 @@ val core = (projectMatrix in file("core"))
       "org.typelevel" %% "munit-cats-effect" % "2.0.0-M4" % Test,
       "org.typelevel" %% "paiges-cats" % "0.4.3",
       "org.scala-lang.modules" %% "scala-collection-compat" % "2.11.0"
+    ),
+    Compile / doc / scalacOptions ++= Seq(
+      "-no-link-warnings" // Suppresses problems with Scaladoc @throws links
     )
   )
 

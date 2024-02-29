@@ -1,11 +1,10 @@
 package discovery
 
-import io.circe.jawn.parseChannel
+import io.circe.jawn.*
 import sbt.*
 import Keys.*
 
 import java.net.HttpURLConnection
-import java.nio.channels.Channels
 
 object ResolveDiscoveryPlugin extends AutoPlugin {
   import DiscoveryPlugin.autoImport._
@@ -40,8 +39,8 @@ object ResolveDiscoveryPlugin extends AutoPlugin {
         conn match {
           case connection: HttpURLConnection =>
             if (connection.getResponseCode == 200) {
-              val channel = Channels.newChannel(connection.getInputStream)
-              parseChannel(channel).fold(
+              val bytes = IO.readBytes(connection.getInputStream)
+              parseByteArray(bytes).fold(
                 err => sys.error(Option(err.getMessage()).getOrElse("Unable to parse")),
                 json => IO.write(cache, json.spaces2SortKeys))
             } else
@@ -68,8 +67,9 @@ object ResolveDiscoveryPlugin extends AutoPlugin {
         case connection: HttpURLConnection =>
           if (connection.getResponseCode == 200) {
             IO.createDirectory(path.getParentFile)
-            val channel = Channels.newChannel(connection.getInputStream)
-            parseChannel(channel).fold(
+            val bytes = IO.readBytes(connection.getInputStream)
+
+            parseByteArray(bytes).fold(
               err => sys.error(Option(err.getMessage()).getOrElse("Unable to parse")),
               json => IO.write(path, json.spaces2SortKeys))
             log.info(s"Wrote ${uri.toString} to $path")
