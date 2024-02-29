@@ -1,9 +1,11 @@
 package discovery
 
-import sbt._
-import Keys._
+import io.circe.jawn.parseChannel
+import sbt.*
+import Keys.*
 
 import java.net.HttpURLConnection
+import java.nio.channels.Channels
 
 object ResolveDiscoveryPlugin extends AutoPlugin {
   import DiscoveryPlugin.autoImport._
@@ -38,7 +40,10 @@ object ResolveDiscoveryPlugin extends AutoPlugin {
         conn match {
           case connection: HttpURLConnection =>
             if (connection.getResponseCode == 200) {
-              IO.transfer(connection.getInputStream, cache)
+              val channel = Channels.newChannel(connection.getInputStream)
+              parseChannel(channel).fold(
+                err => sys.error(Option(err.getMessage()).getOrElse("Unable to parse")),
+                json => IO.write(cache, json.spaces2SortKeys))
             } else
               sys.error(
                 s"Did not find the discovery document, error code ${connection.getResponseCode}")
@@ -63,7 +68,10 @@ object ResolveDiscoveryPlugin extends AutoPlugin {
         case connection: HttpURLConnection =>
           if (connection.getResponseCode == 200) {
             IO.createDirectory(path.getParentFile)
-            IO.transfer(connection.getInputStream, path)
+            val channel = Channels.newChannel(connection.getInputStream)
+            parseChannel(channel).fold(
+              err => sys.error(Option(err.getMessage()).getOrElse("Unable to parse")),
+              json => IO.write(path, json.spaces2SortKeys))
             log.info(s"Wrote ${uri.toString} to $path")
           }
         case _ => sys.error("unhandled url connection")

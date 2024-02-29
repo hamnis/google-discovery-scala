@@ -3,8 +3,12 @@ package discovery
 import org.http4s.{Method, Uri}
 import org.typelevel.paiges.Doc
 import org.typelevel.paiges.Document.ops._
+import scala.collection.compat._
 
-case class Client(name: String, baseUri: Uri, methods: List[Client.ResolvedInvocation]) {
+case class ClientCodegen(
+    name: String,
+    baseUri: Uri,
+    methods: List[ClientCodegen.ResolvedInvocation]) {
   def imports =
     List(
       "cats.effect.Concurrent",
@@ -26,7 +30,7 @@ case class Client(name: String, baseUri: Uri, methods: List[Client.ResolvedInvoc
             )).flatten ++ methods.map(_.toCode + Doc.hardLine)
         )
 
-    val definitions = methods.flatMap(_.queryParams.caseClass).distinct
+    val definitions = distinctBy(methods.flatMap(_.queryParams.caseClass))(_.name)
 
     val companion =
       if (definitions.isEmpty) Doc.empty
@@ -37,9 +41,24 @@ case class Client(name: String, baseUri: Uri, methods: List[Client.ResolvedInvoc
 
     (definition + companion).render(80)
   }
+
+  private def distinctBy[A, B](list: List[A])(f: A => B) =
+    if (list.lengthCompare(1) <= 0) list
+    else {
+      val builder = List.newBuilder[A]
+      val seen = collection.mutable.HashSet.empty[B]
+      val it = list.iterator
+      var different = false
+      while (it.hasNext) {
+        val next = it.next()
+        if (seen.add(f(next))) builder += next else different = true
+      }
+      if (different) builder.result() else list
+    }
 }
 
-object Client {
+object ClientCodegen {
+
   def clientsFrom(discovery: Discovery) = {
     val resources = discovery.resources.getOrElse(Resources(Map.empty)).resources
     def mkParameter(name: String, param: HttpParameter) = {
@@ -65,17 +84,17 @@ object Client {
           ResolvedInvocation(
             resourceTypeName,
             method,
-            Method.fromString(invocation.httpMethod).right.get,
+            Method.fromString(invocation.httpMethod).toOption.get,
             Template(
               invocation.path,
               invocation.parameters.order.flatMap(p =>
                 invocation.parameters.parameters.get(p).map(mkParameter(p, _)))
             ),
             QueryParams(
-              invocation.httpMethod.toLowerCase.capitalize,
+              method.capitalize + invocation.httpMethod.toLowerCase.capitalize,
               invocation.parameters.parameters
                 .collect {
-                  case (k, v) if v.`type` == "query" =>
+                  case (k, v) if v.location == "query" =>
                     mkParameter(k, v.copy(required = None)).copy(default = Some(Doc.text("None")))
                 }
                 .toList
@@ -86,7 +105,7 @@ object Client {
           )
         }.toList
 
-        Client(
+        ClientCodegen(
           resourceTypeName + "Client",
           discovery.baseUrl.withPath(discovery.baseUrl.path.dropEndsWithSlash),
           resolved)

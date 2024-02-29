@@ -96,7 +96,8 @@ val core = (projectMatrix in file("core"))
       "org.http4s" %% "http4s-client" % "0.23.25",
       "org.scalameta" %% "munit" % "1.0.0-M10" % Test,
       "org.typelevel" %% "munit-cats-effect" % "2.0.0-M4" % Test,
-      "org.typelevel" %% "paiges-cats" % "0.4.3"
+      "org.typelevel" %% "paiges-cats" % "0.4.3",
+      "org.scala-lang.modules" %% "scala-collection-compat" % "2.11.0"
     )
   )
 

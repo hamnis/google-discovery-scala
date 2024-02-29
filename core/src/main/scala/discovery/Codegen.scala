@@ -7,6 +7,7 @@ import org.typelevel.paiges.Document.ops._
 
 import java.nio.charset.StandardCharsets
 import java.nio.file.{Files, Path}
+import scala.collection.compat._
 
 object Codegen {
   case class SourceFile(pkg: String, name: String, imports: List[String], body: String) {
@@ -31,7 +32,7 @@ object Codegen {
   def generateFromDiscovery(packageName: String, discovery: Discovery) = {
     val static = Codegen.jsonInstances(packageName) :: Codegen.abstractClient(
       packageName) :: Codegen.googleError(packageName) :: Nil
-    val clients = Client
+    val clients = ClientCodegen
       .clientsFrom(discovery)
       .map(c =>
         Codegen.SourceFile(
@@ -41,7 +42,7 @@ object Codegen {
           c.toCode
         ))
 
-    val models = discovery.schemas
+    val models = discovery.schemas.view
       .filterKeys(!Set("JsonObject", "JsonValue").contains(_))
       .toList
       .flatMap { case (name, schema) =>

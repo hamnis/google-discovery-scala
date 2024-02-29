@@ -13,11 +13,19 @@ case class QueryParams(basename: String, params: List[Parameter]) {
 
   def toQueryParamsDoc = if (isEmpty) Doc.empty
   else {
-    val qpParams = Doc
+    Doc
       .intercalate(
         Doc.comma + Doc.lineOrSpace,
-        params.map(p => p.literal + Doc.text(" -> ") + Doc.text("query") + p.term))
-      .tightBracketBy(Doc.text("Map("), Doc.text(")"))
-    Doc.text("withQueryParams(") + qpParams + Doc.text(")")
+        params.map { p =>
+          val mapper = p.`type`.asString match {
+            case "String" => Doc.text("query.") + p.term
+            case _ =>
+              Doc.text("query.") + p.term + Doc.text(
+                ".map(s => QueryParamEncoder[") + p.`type`.asDoc + Doc.text("].encode(s).value)")
+          }
+          p.literal + Doc.text(" -> ") + mapper
+        }
+      )
+      .tightBracketBy(Doc.text("Query("), Doc.text(")"))
   }
 }
