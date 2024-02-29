@@ -1,7 +1,9 @@
+import scala.collection.immutable.Seq
+
 val circeVersion = "0.14.6"
 
 val scala212 = "2.12.18"
-val scala213 = "2.13.12"
+val scala213 = "2.13.13"
 val scala3 = "3.3.1"
 
 val baseVersion = "0.5"
@@ -96,7 +98,11 @@ val core = (projectMatrix in file("core"))
       "org.http4s" %% "http4s-client" % "0.23.25",
       "org.scalameta" %% "munit" % "1.0.0-M10" % Test,
       "org.typelevel" %% "munit-cats-effect" % "2.0.0-M4" % Test,
-      "org.typelevel" %% "paiges-cats" % "0.4.3"
+      "org.typelevel" %% "paiges-cats" % "0.4.3",
+      "org.scala-lang.modules" %% "scala-collection-compat" % "2.11.0"
+    ),
+    Compile / doc / scalacOptions ++= Seq(
+      "-no-link-warnings" // Suppresses problems with Scaladoc @throws links
     )
   )
 

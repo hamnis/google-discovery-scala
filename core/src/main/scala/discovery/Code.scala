@@ -91,6 +91,7 @@ object Code {
   object Sanitize {
     def apply(s: String): String = s match {
       case "type" => "`type`"
+      case s if s.contains(".") => s.replace('.', '_')
       case s => s
     }
   }

@@ -7,6 +7,7 @@ import org.typelevel.paiges.Document.ops._
 
 import java.nio.charset.StandardCharsets
 import java.nio.file.{Files, Path}
+import scala.collection.compat._
 
 object Codegen {
   case class SourceFile(pkg: String, name: String, imports: List[String], body: String) {
@@ -31,7 +32,7 @@ object Codegen {
   def generateFromDiscovery(packageName: String, discovery: Discovery) = {
     val static = Codegen.jsonInstances(packageName) :: Codegen.abstractClient(
       packageName) :: Codegen.googleError(packageName) :: Nil
-    val clients = Client
+    val clients = ClientCodegen
       .clientsFrom(discovery)
       .map(c =>
         Codegen.SourceFile(
@@ -41,7 +42,7 @@ object Codegen {
           c.toCode
         ))
 
-    val models = discovery.schemas
+    val models = discovery.schemas.view
       .filterKeys(!Set("JsonObject", "JsonValue").contains(_))
       .toList
       .flatMap { case (name, schema) =>
@@ -182,7 +183,8 @@ object Codegen {
       "io.circe._",
       "org.http4s._",
       "org.http4s.client.Client"),
-    """class AbstractClient[F[_]](client: Client[F])(implicit F: Concurrent[F]) {
+    """abstract class AbstractClient[F[_]](client: Client[F])(implicit
+      |    F: Concurrent[F]) {
       |  private implicit def entityDecoder[A: Decoder]: EntityDecoder[F, A] =
       |    org.http4s.circe.jsonOf[F, A]
       |  private implicit def entityEncoder[A: Encoder]: EntityEncoder[F, A] =
@@ -195,7 +197,18 @@ object Codegen {
       |    Request[F](uri = uri, method = method).withEntity(input)
       |
       |  def expectJson[A: Decoder](req: Request[F]) =
-      |    client.expectOr[A](req)(res => res.as[GoogleError].flatMap(err => F.raiseError(err)))
+      |    client.expectOr[A](req) { res =>
+      |      res
+      |        .as[GoogleError]
+      |        .attempt
+      |        .flatMap(err =>
+      |          F.raiseError(
+      |            err
+      |              .fold(
+      |                err => GoogleError(Some(res.status.code), Option(err.getMessage), Nil, Nil),
+      |                identity)
+      |          ))
+      |    }
       |}
       |
       |""".stripMargin

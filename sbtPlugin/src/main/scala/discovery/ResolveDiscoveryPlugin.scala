@@ -1,7 +1,8 @@
 package discovery
 
-import sbt._
-import Keys._
+import io.circe.jawn.*
+import sbt.*
+import Keys.*
 
 import java.net.HttpURLConnection
 
@@ -38,7 +39,10 @@ object ResolveDiscoveryPlugin extends AutoPlugin {
         conn match {
           case connection: HttpURLConnection =>
             if (connection.getResponseCode == 200) {
-              IO.transfer(connection.getInputStream, cache)
+              val bytes = IO.readBytes(connection.getInputStream)
+              parseByteArray(bytes).fold(
+                err => sys.error(Option(err.getMessage()).getOrElse("Unable to parse")),
+                json => IO.write(cache, json.spaces2SortKeys))
             } else
               sys.error(
                 s"Did not find the discovery document, error code ${connection.getResponseCode}")
@@ -63,7 +67,11 @@ object ResolveDiscoveryPlugin extends AutoPlugin {
         case connection: HttpURLConnection =>
           if (connection.getResponseCode == 200) {
             IO.createDirectory(path.getParentFile)
-            IO.transfer(connection.getInputStream, path)
+            val bytes = IO.readBytes(connection.getInputStream)
+
+            parseByteArray(bytes).fold(
+              err => sys.error(Option(err.getMessage()).getOrElse("Unable to parse")),
+              json => IO.write(path, json.spaces2SortKeys))
             log.info(s"Wrote ${uri.toString} to $path")
           }
         case _ => sys.error("unhandled url connection")
