@@ -6,10 +6,11 @@ val scala212 = "2.12.18"
 val scala213 = "2.13.13"
 val scala3 = "3.3.1"
 
-val baseVersion = "0.5"
+val baseVersion = "0.6"
 
 inThisBuild(
   Seq(
+    myBaseVersion := baseVersion,
     organization := "net.hamnaberg",
     sonatypeProfileName := organization.value,
     githubWorkflowJavaVersions := Seq(JavaSpec.temurin("17")),
@@ -38,7 +39,6 @@ inThisBuild(
         )
       )
     ),
-    scalaVersion := scala212,
     githubWorkflowBuild := Seq(
       WorkflowStep.Use(UseRef.Public("stringbean", "scalafmt-action", "v3")),
       WorkflowStep.Sbt(
@@ -58,10 +58,7 @@ inThisBuild(
         "erlend@hamnaberg.net",
         url("https://github.com/hamnis")
       )
-    ),
-    git.baseVersion := baseVersion,
-    git.formattedShaVersion := None,
-    git.formattedDateVersion := git.baseVersion.value + "-SNAPSHOT"
+    )
   ))
 
 def sonatypeBundleReleaseIfRelevant: Command =
@@ -80,7 +77,7 @@ def doConfigure(project: Project): Project =
       commands += sonatypeBundleReleaseIfRelevant,
       sbtPluginPublishLegacyMavenStyle := false
     )
-    .enablePlugins(GitVersioning)
+    .enablePlugins(MyVersioningPlugin)
 
 val core = (projectMatrix in file("core"))
   .jvmPlatform(scalaVersions = Seq(scala212, scala213, scala3))
@@ -124,7 +121,7 @@ val sbtPlugin = (projectMatrix in file("sbtPlugin"))
 lazy val root = project
   .in(file("."))
   .configure(doConfigure)
-  .aggregate(core.projectRefs ++ sbtPlugin.projectRefs: _*)
+  .aggregate((core.projectRefs ++ sbtPlugin.projectRefs): _*)
   .settings(
     name := "google-discovery",
     publish / skip := true,

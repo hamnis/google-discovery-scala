@@ -3,6 +3,8 @@ package discovery
 import org.typelevel.paiges.Doc
 import org.typelevel.paiges.Document.ops._
 
+import java.util.Scanner
+
 object Code {
   val lparens = Doc.char('(')
   val rparens = Doc.char(')')
@@ -63,6 +65,29 @@ object Code {
       Doc.lineOrEmpty + body)
   }
 
+  def blockComment(s: String) = {
+    val buf = List.newBuilder[String]
+    val scanner = new Scanner(s)
+    scanner.useDelimiter("\\n")
+    while (scanner.hasNext()) {
+      val line = scanner.next()
+      val lines = if (line.contains(" * ")) {
+        line.split(" \\* ").toList.map(_.replaceAll("\\*", "\\\\*"))
+      } else List(line)
+
+      buf ++= lines
+    }
+
+    val parts =
+      Doc.foldDocs(buf.result().map(s => Doc.text("* " + s)))((x, y) => x + (Doc.hardLine + y))
+    parts
+      .tightBracketBy(
+        Doc.hardLine + Doc.text("/**") + Doc.hardLine,
+        Doc.hardLine + Doc.text("*/") + Doc.hardLine,
+        0
+      )
+  }
+
   def term(name: String) = Doc.text(Sanitize(name))
 
   def termSelect(name: Doc, selected: Doc) =
@@ -91,6 +116,7 @@ object Code {
   object Sanitize {
     def apply(s: String): String = s match {
       case "type" => "`type`"
+      case "object" => "`object`"
       case s if s.contains(".") => s.replace('.', '_')
       case s => s
     }
