@@ -7,17 +7,29 @@ class CodegenTest extends munit.FunSuite {
     val cc = CaseClass(
       "Person",
       List(
-        Parameter("name", Type("String"), None, true),
-        Parameter("age", Type("Int"), None, true)))
+        Parameter(
+          "object",
+          Type("String"),
+          Some("This is a comment and it is awesome\nWe generate newlines\nmore newlines"),
+          true),
+        Parameter("age", Type("Int"), None, true)
+      )
+    )
 
     val ccAsString = CaseClass.renderer.document(cc).render(80)
-    val expected = """final case class Person(name: String, age: Int)
+    val expected = """final case class Person(
+                     |  /**
+                     |  * This is a comment and it is awesome
+                     |  * We generate newlines
+                     |  * more newlines
+                     |  */
+                     |  `object`: String, age: Int)
                      |object Person {
                      |  implicit val encoder: Encoder[Person] = Encoder.instance{ x =>
-                     |    Json.obj("name" := x.name, "age" := x.age)
+                     |    Json.obj("object" := x.`object`, "age" := x.age)
                      |  }
                      |  implicit val decoder: Decoder[Person] = Decoder.instance{ c => for {
-                     |      v0 <- c.get[String]("name")
+                     |      v0 <- c.get[String]("object")
                      |      v1 <- c.get[Int]("age")
                      |    } yield Person(v0, v1)
                      |  }
@@ -34,9 +46,14 @@ class CodegenTest extends munit.FunSuite {
 
     val expected = """sealed abstract class Kind(val value: String) extends Product with Serializable
                      |object Kind {
-                     |  // Lots of ones
+                     |  /**
+                     |  * Lots of ones
+                     |  */
                      |  case object ONE extends Kind("one")
-                     |  // Even more twos
+                     |  
+                     |  /**
+                     |  * Even more twos
+                     |  */
                      |  case object TWO extends Kind("two")
                      |  val values = List(ONE, TWO)
                      |  def fromString(input: String): Either[String, Kind] = values.find(_.value == input).toRight(s"'$input' was not a valid value for Kind")

@@ -78,15 +78,15 @@ object EnumType {
         s"sealed abstract class ${enumType.name}(val value: String) extends Product with Serializable")
 
       val objects =
-        Doc.hardLine + Doc.intercalate(
+        Doc.intercalate(
           Doc.hardLine,
           enumType.cases.zip(enumType.descriptions).map { case (k, v) =>
             val obj =
               Doc.text(s"case object ${toObjectName(k)} extends ${enumType.name}") + Doc
                 .text(k)
-                .tightBracketBy(Code.lparens + Code.quote, Code.quote + Code.rparens)
-            val comment = Doc.text("// ") + Doc.text(v)
-            comment + Doc.hardLine + obj
+                .tightBracketBy(Code.lparens + Code.quote, Code.quote + Code.rparens, 0)
+            val comment = Code.blockComment(v)
+            comment + obj
           }
         )
 
@@ -243,7 +243,7 @@ case class Parameter(
 
 object Parameter {
   implicit val renderer: Document[Parameter] = Document.instance { p =>
-    val comment = p.description.fold(Doc.empty)(c => Doc.text("// ") + Doc.text(c) + Doc.hardLine)
+    val comment = p.description.fold(Doc.empty)(Code.blockComment)
     val defaultOrEmpty = p.default
       .map(d => Doc.char('=').tightBracketBy(Doc.lineOrSpace, Doc.lineOrSpace) + d)
       .getOrElse(Doc.empty)

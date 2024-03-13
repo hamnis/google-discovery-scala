@@ -8,7 +8,7 @@ import scala.collection.compat._
 case class ClientCodegen(
     name: String,
     baseUri: Uri,
-    methods: List[ClientCodegen.ResolvedInvocation]) {
+    methods: List[ClientCodegen.ResolvedApiMethod]) {
   def imports =
     List(
       "cats.effect.Concurrent",
@@ -36,7 +36,7 @@ case class ClientCodegen(
       if (definitions.isEmpty) Doc.empty
       else
         Doc.hardLine + Doc.text(s"object ${name} ") + Code.blocks(
-          definitions.map(cc => CaseClass.renderClass(cc))
+          definitions.map(cc => CaseClass.renderClass(cc) + Doc.hardLine)
         )
 
     (definition + companion).render(80)
@@ -60,7 +60,36 @@ case class ClientCodegen(
 object ClientCodegen {
 
   def clientsFrom(discovery: Discovery) = {
-    val resources = discovery.resources.getOrElse(Resources(Map.empty)).resources
+    val resolveTypes = discovery.schemas.keys.map(typ => typ -> Type.apply(typ)).toMap
+
+    def fromResources(parentName: Option[String], _resources: Resources): List[ClientCodegen] = {
+      val resources = _resources.resources
+
+      resources.flatMap { case (resourceName, resource) =>
+        val resourceTypeName = parentName.getOrElse("") + resourceName.capitalize
+        val resolved = resolveApiMethods(resourceTypeName, resource, resolveTypes)
+
+        val recursive = fromResources(Some(resourceTypeName), resource.resources)
+        val ourClients = if (resolved.nonEmpty) {
+          List(
+            ClientCodegen(
+              resourceTypeName + "Client",
+              discovery.baseUrl.withPath(discovery.baseUrl.path.dropEndsWithSlash),
+              resolved)
+          )
+        } else Nil
+
+        ourClients ::: recursive
+      }.toList
+    }
+
+    fromResources(None, discovery.resources)
+  }
+
+  private def resolveApiMethods(
+      resourceTypeName: String,
+      resource: Resource,
+      types: Map[String, Type]) = {
     def mkParameter(name: String, param: HttpParameter) = {
       val typ = param.`type` match {
         case "integer" => Type("Int")
@@ -75,45 +104,36 @@ object ClientCodegen {
       )
     }
 
-    val resolveTypes = discovery.schemas.keys.map(typ => typ -> Type.apply(typ)).toMap
-
-    resources.flatMap { case (resourceName, resource) =>
-      resource.methods.values.map { invocations =>
-        val resourceTypeName = resourceName.capitalize
-        val resolved = invocations.methods.map { case (method, invocation) =>
-          ResolvedInvocation(
-            resourceTypeName,
-            method,
-            Method.fromString(invocation.httpMethod).toOption.get,
-            Template(
-              invocation.path,
-              invocation.parameters.order.flatMap(p =>
-                invocation.parameters.parameters.get(p).map(mkParameter(p, _)))
-            ),
-            QueryParams(
-              method.capitalize + invocation.httpMethod.toLowerCase.capitalize,
-              invocation.parameters.parameters
-                .collect {
-                  case (k, v) if v.location == "query" =>
-                    mkParameter(k, v.copy(required = None)).copy(default = Some(Doc.text("None")))
-                }
-                .toList
-                .sortBy(_.name)
-            ),
-            invocation.request.flatMap(s => s.$ref).flatMap(resolveTypes.get),
-            invocation.response.flatMap(s => s.$ref).flatMap(resolveTypes.get)
-          )
-        }.toList
-
-        ClientCodegen(
-          resourceTypeName + "Client",
-          discovery.baseUrl.withPath(discovery.baseUrl.path.dropEndsWithSlash),
-          resolved)
-      }
+    resource.methods.map { case (methodName, apiMethod) =>
+      ResolvedApiMethod(
+        resourceTypeName,
+        methodName,
+        Method.fromString(apiMethod.httpMethod).toOption.get,
+        Template(
+          apiMethod.path,
+          apiMethod.parameters.order.flatMap(p =>
+            apiMethod.parameters.parameters
+              .get(p)
+              .filter(_.location == "path")
+              .map(mkParameter(p, _)))
+        ),
+        QueryParams(
+          methodName.capitalize,
+          apiMethod.parameters.parameters
+            .collect {
+              case (k, v) if v.location == "query" =>
+                mkParameter(k, v.copy(required = None)).copy(default = Some(Doc.text("None")))
+            }
+            .toList
+            .sortBy(_.name)
+        ),
+        apiMethod.request.flatMap(s => s.$ref).flatMap(types.get),
+        apiMethod.response.flatMap(s => s.$ref).flatMap(types.get)
+      )
     }.toList
   }
 
-  case class ResolvedInvocation(
+  case class ResolvedApiMethod(
       resourceTypeName: String,
       name: String,
       method: Method,

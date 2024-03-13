@@ -1,12 +1,13 @@
 package discovery
 
+import discovery.Code.Sanitize
 import discovery.Template.Variable
 import org.typelevel.paiges.Doc
 
 case class Template(path: String, params: List[Parameter]) {
   def expand(segment: String) = {
     val m = Variable.pattern.matcher(segment)
-    if (m.find) Code.interpolate("s", Code.interpolatedValue(m.group(2)))
+    if (m.find) Code.interpolate("s", Code.interpolatedValue(Sanitize(m.group(2))))
     else Code.lit(segment)
   }
 
