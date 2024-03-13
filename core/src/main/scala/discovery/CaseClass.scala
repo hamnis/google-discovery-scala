@@ -148,7 +148,7 @@ case class JsonObjectWrapper(name: String) extends GeneratedType {
 
 object JsonObjectWrapper {
   implicit val renderer: Document[JsonObjectWrapper] = (a: JsonObjectWrapper) => {
-    val cc = Doc.text(s"final case class ${a.name}(value: JsonObject)")
+    val cc = Doc.text(s"final case class ${a.name}(value: JsonObject = JsonObject.empty)")
     val companion = {
       val start = Doc.text(s"object ${a.name} ")
       val encoder = TypeClassInstance(
