@@ -70,7 +70,8 @@ case class ApiMethod(
     parameters: HttpParameters,
     scopes: List[String],
     request: Option[Schema],
-    response: Option[Schema]
+    response: Option[Schema],
+    deprecated: Option[Boolean]
 )
 
 object ApiMethod {
@@ -83,6 +84,7 @@ object ApiMethod {
       scopes <- c.get[Option[List[String]]]("scopes")
       request <- c.get[Option[Schema]]("request")
       response <- c.get[Option[Schema]]("response")
+      deprecated <- c.get[Option[Boolean]]("deprecated")
     } yield ApiMethod(
       path,
       httpMethod,
@@ -90,10 +92,15 @@ object ApiMethod {
       parameters.getOrElse(HttpParameters.empty),
       scopes.getOrElse(Nil),
       request,
-      response))
+      response,
+      deprecated
+    ))
 }
 
-case class Resource(methods: Map[String, ApiMethod], resources: Resources) {
+case class Resource(
+    methods: Map[String, ApiMethod],
+    resources: Resources,
+    deprecated: Option[Boolean]) {
   def get(name: String) = methods.get(name)
 }
 
@@ -104,7 +111,8 @@ object Resource {
         .get[Option[Map[String, ApiMethod]]]("methods")
         .map(opt => opt.orElse(c.as[Option[Map[String, ApiMethod]]].toOption.flatten))
       resources <- c.get[Option[Resources]]("resources")
-    } yield Resource(methods.getOrElse(Map.empty), resources.getOrElse(Resources.empty))
+      deprecated <- c.get[Option[Boolean]]("deprecated")
+    } yield Resource(methods.getOrElse(Map.empty), resources.getOrElse(Resources.empty), deprecated)
   }
 }
 

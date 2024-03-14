@@ -61,13 +61,22 @@ object Codegen {
 
   def mkSchema(name: String, schema: Schema): List[GeneratedType] = {
     type F[A] = Writer[List[GeneratedType], A]
-    Traverse[List]
-      .traverse[F, (String, Schema), Parameter](schema.properties.toList.flatMap(_.toList)) {
-        case (propertyName, property) =>
-          mkSchemaProperty(name, propertyName, property)
-      }
-      .flatMap(parameters => Writer.tell(CaseClass(name, parameters) :: Nil))
-      .written
+
+    if (schema.properties.forall(_.isEmpty)) {
+      List(
+        CaseClass(
+          name,
+          List(
+            Parameter("value", Type("JsonObject"), None, false, default = Some(Doc.text("None"))))))
+    } else {
+      Traverse[List]
+        .traverse[F, (String, Schema), Parameter](schema.properties.toList.flatMap(_.toList)) {
+          case (propertyName, property) =>
+            mkSchemaProperty(name, propertyName, property)
+        }
+        .flatMap(parameters => Writer.tell(CaseClass(name, parameters) :: Nil))
+        .written
+    }
   }
 
   def mkSchemaProperty(
@@ -127,6 +136,7 @@ object Codegen {
 
     val obj = property.`type`.collect { case "object" =>
       property.properties
+        .filter(_.nonEmpty)
         .map { p =>
           val schemaName = s"$parentName${name.capitalize}"
           Writer(

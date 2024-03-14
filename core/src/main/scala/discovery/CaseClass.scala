@@ -51,6 +51,7 @@ object GeneratedType {
   implicit val renderer: Document[GeneratedType] = Document.instance {
     case cc: CaseClass => CaseClass.renderer.document(cc)
     case e: EnumType => EnumType.renderer.document(e)
+    case w: JsonObjectWrapper => JsonObjectWrapper.renderer.document(w)
   }
 
 }
@@ -137,6 +138,32 @@ object EnumType {
       Doc.intercalate(Doc.hardLine, List(cls, companion)) + Doc.hardLine
     }
 
+}
+
+case class JsonObjectWrapper(name: String) extends GeneratedType {
+  override def imports: List[String] = List(
+    "io.circe._"
+  )
+}
+
+object JsonObjectWrapper {
+  implicit val renderer: Document[JsonObjectWrapper] = (a: JsonObjectWrapper) => {
+    val cc = Doc.text(s"final case class ${a.name}(value: JsonObject = JsonObject.empty)")
+    val companion = {
+      val start = Doc.text(s"object ${a.name} ")
+      val encoder = TypeClassInstance(
+        "encoder",
+        Type.encoder(Type(a.name)),
+        Doc.text("Encoder[JsonObject].contramap(_.value)"))
+      val decoder = TypeClassInstance(
+        "decoder",
+        Type.decoder(Type(a.name)),
+        Doc.text("Decoder[JsonObject].map(apply)"))
+      start + Code.blocks(List(encoder.doc, decoder.doc))
+    }
+
+    cc + Doc.hardLine + companion
+  }
 }
 
 case class CaseClass(
