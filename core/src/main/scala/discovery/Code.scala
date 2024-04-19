@@ -73,7 +73,7 @@ object Code {
       val line = scanner.next()
       val lines = if (line.contains(" * ")) {
         line.split(" \\* ").toList.map(_.replaceAll("\\*", "\\\\*"))
-      } else List(line)
+      } else List(line.replaceAll("\\*", "\\\\*"))
 
       buf ++= lines
     }
