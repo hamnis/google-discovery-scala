@@ -23,9 +23,13 @@ case class QueryParams(basename: String, params: List[Parameter]) {
               Doc.text("query.") + p.term + Doc.text(
                 ".map(s => QueryParamEncoder[") + p.`type`.asDoc + Doc.text("].encode(s).value)")
           }
-          p.literal + Doc.text(" -> ") + mapper
+          val wrap = Doc.text("List(") + p.literal + Doc.text(" -> ") + mapper + Doc.text(")")
+          if (p.required) wrap
+          else {
+            wrap + Doc.text(".flatMap{ case (k, v) => v.map(vv => k -> Option(vv)) }")
+          }
         }
       )
-      .tightBracketBy(Doc.text("Query("), Doc.text(")"))
+      .tightBracketBy(Doc.text("Query.fromVector(Vector("), Doc.text(").flatten)"))
   }
 }
