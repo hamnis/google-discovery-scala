@@ -112,4 +112,4 @@ jobs:
           SONATYPE_PASSWORD: ${{ secrets.SONATYPE_PASSWORD }}
           SONATYPE_USERNAME: ${{ secrets.SONATYPE_USERNAME }}
           PGP_PASSPHRASE: ${{ secrets.PGP_PASSPHRASE }}
-        run: sbt +aetherDeploy sonatypeBundleReleaseIfRelevant
+        run: sbt publishSigned sonaRelease

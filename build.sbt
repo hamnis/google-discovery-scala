@@ -10,7 +10,6 @@ inThisBuild(
   Seq(
     myBaseVersion := baseVersion,
     organization := "net.hamnaberg",
-    sonatypeProfileName := organization.value,
     githubWorkflowJavaVersions := Seq(JavaSpec.temurin("17")),
     githubWorkflowTargetTags ++= Seq("v*"),
     githubWorkflowPublishTargetBranches :=
@@ -28,7 +27,7 @@ inThisBuild(
         )
       ),
       WorkflowStep.Sbt(
-        commands = List("+aetherDeploy", "sonatypeBundleReleaseIfRelevant"),
+        commands = List("publishSigned", "sonaRelease"),
         name = Some("Publish project"),
         env = Map(
           "SONATYPE_PASSWORD" -> "${{ secrets.SONATYPE_PASSWORD }}",
@@ -56,25 +55,16 @@ inThisBuild(
         "erlend@hamnaberg.net",
         url("https://github.com/hamnis")
       )
-    )
+    ),
+    publishTo := {
+      val centralSnapshots = "https://central.sonatype.com/repository/maven-snapshots/"
+      if (isSnapshot.value) Some("central-snapshots".at(centralSnapshots))
+      else localStaging.value
+    }
   ))
-
-def sonatypeBundleReleaseIfRelevant: Command =
-  Command.command("sonatypeBundleReleaseIfRelevant") { state =>
-    if (state.getSetting(isSnapshot).getOrElse(false))
-      state // a snapshot is good-to-go
-    else // a non-snapshot releases as a bundle
-      Command.process("sonatypeBundleRelease", state, _ => ())
-  }
 
 def doConfigure(project: Project): Project =
   project
-    .settings(
-      publishTo := sonatypePublishToBundle.value,
-      publishMavenStyle := true,
-      commands += sonatypeBundleReleaseIfRelevant,
-      sbtPluginPublishLegacyMavenStyle := false
-    )
     .enablePlugins(MyVersioningPlugin)
 
 val core = (projectMatrix in file("core"))

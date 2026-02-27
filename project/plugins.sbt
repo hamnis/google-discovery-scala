@@ -1,8 +1,6 @@
 addSbtPlugin("com.github.sbt" % "sbt-github-actions" % "0.29.0")
-addSbtPlugin("org.xerial.sbt" % "sbt-sonatype" % "3.12.2")
 addSbtPlugin("com.github.sbt" % "sbt-pgp" % "2.3.1")
 addSbtPlugin("com.github.sbt" % "sbt-git" % "2.1.0")
 addSbtPlugin("com.eed3si9n" % "sbt-projectmatrix" % "0.11.0")
-addSbtPlugin("no.arktekk.sbt" % "aether-deploy-signed" % "0.29.1")
 addSbtPlugin("org.scalameta" % "sbt-scalafmt" % "2.5.6")
 addSbtPlugin("org.typelevel" % "sbt-typelevel-kernel" % "0.8.5")
