@@ -10,6 +10,7 @@ inThisBuild(
   Seq(
     myBaseVersion := baseVersion,
     organization := "net.hamnaberg",
+    sonaDeploymentName := organization.value,
     githubWorkflowJavaVersions := Seq(JavaSpec.temurin("17")),
     githubWorkflowTargetTags ++= Seq("v*"),
     githubWorkflowPublishTargetBranches :=
