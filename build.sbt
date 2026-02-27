@@ -1,9 +1,7 @@
-import scala.collection.immutable.Seq
+val circeVersion = "0.14.15"
 
-val circeVersion = "0.14.6"
-
-val scala212 = "2.12.18"
-val scala213 = "2.13.13"
+val scala212 = "2.12.21"
+val scala213 = "2.13.17"
 val scala3 = "3.3.1"
 
 val baseVersion = "0.6"
@@ -66,7 +64,7 @@ def sonatypeBundleReleaseIfRelevant: Command =
     if (state.getSetting(isSnapshot).getOrElse(false))
       state // a snapshot is good-to-go
     else // a non-snapshot releases as a bundle
-      Command.process("sonatypeBundleRelease", state)
+      Command.process("sonatypeBundleRelease", state, _ => ())
   }
 
 def doConfigure(project: Project): Project =
@@ -90,13 +88,13 @@ val core = (projectMatrix in file("core"))
       "io.circe" %% "circe-core" % circeVersion,
       "io.circe" %% "circe-generic" % circeVersion,
       "io.circe" %% "circe-jawn" % circeVersion,
-      "org.http4s" %% "http4s-core" % "0.23.25",
-      "org.http4s" %% "http4s-circe" % "0.23.25",
-      "org.http4s" %% "http4s-client" % "0.23.25",
-      "org.scalameta" %% "munit" % "1.0.0-M10" % Test,
-      "org.typelevel" %% "munit-cats-effect" % "2.0.0-M4" % Test,
-      "org.typelevel" %% "paiges-cats" % "0.4.3",
-      "org.scala-lang.modules" %% "scala-collection-compat" % "2.11.0"
+      "org.http4s" %% "http4s-core" % "0.23.33",
+      "org.http4s" %% "http4s-circe" % "0.23.33",
+      "org.http4s" %% "http4s-client" % "0.23.33",
+      "org.scalameta" %% "munit" % "1.2.3" % Test,
+      "org.typelevel" %% "munit-cats-effect" % "2.1.0" % Test,
+      "org.typelevel" %% "paiges-cats" % "0.4.4",
+      "org.scala-lang.modules" %% "scala-collection-compat" % "2.14.0"
     ),
     Compile / doc / scalacOptions ++= Seq(
       "-no-link-warnings" // Suppresses problems with Scaladoc @throws links
