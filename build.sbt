@@ -38,7 +38,9 @@ inThisBuild(
       )
     ),
     githubWorkflowBuild := Seq(
-      WorkflowStep.Use(UseRef.Public("stringbean", "scalafmt-action", "v3")),
+      WorkflowStep.Use(
+        UseRef.Public("jrouly", "scalafmt-native-action", "v5"),
+        params = Map("arguments" -> "--test")),
       WorkflowStep.Sbt(
         commands = List("+test", "sbtPlugin/scripted"),
         name = Some("Build project"),

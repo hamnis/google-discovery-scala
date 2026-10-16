@@ -46,7 +46,9 @@ jobs:
       - name: Check that workflows are up to date
         run: sbt '++ ${{ matrix.scala }}; githubWorkflowCheck'
 
-      - uses: stringbean/scalafmt-action@v3
+      - uses: jrouly/scalafmt-native-action@v5
+        with:
+          arguments: '--test'
 
       - name: Build project
         env:

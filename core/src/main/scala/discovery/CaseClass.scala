@@ -1,7 +1,7 @@
 package discovery
 
 import org.typelevel.paiges.{Doc, Document}
-import org.typelevel.paiges.Document.ops._
+import org.typelevel.paiges.Document.ops.*
 
 sealed trait Type extends Product with Serializable {
   def asDoc: Doc
@@ -73,7 +73,7 @@ case class EnumType(name: String, cases: List[String], descriptions: List[String
 object EnumType {
   implicit val renderer: Document[EnumType] =
     Document.instance { enumType =>
-      def toObjectName(_case: String) = _case.toUpperCase.replaceAll("\\W", "_")
+      def toObjectName(_case: String) = _case.toUpperCase.trim.replaceAll("\\W", "_")
 
       val cls = Doc.text(
         s"sealed abstract class ${enumType.name}(val value: String) extends Product with Serializable")
@@ -82,10 +82,11 @@ object EnumType {
         Doc.intercalate(
           Doc.hardLine,
           enumType.cases.zip(enumType.descriptions).map { case (k, v) =>
+            val trimmedKey = k.trim
             val obj =
-              Doc.text(s"case object ${toObjectName(k)} extends ${enumType.name}") + Doc
-                .text(k)
-                .tightBracketBy(Code.lparens + Code.quote, Code.quote + Code.rparens, 0)
+              Doc.text(
+                s"case object ${toObjectName(trimmedKey)} extends ${enumType.name}") + Code.lparens + Code.quote + Doc
+                .text(trimmedKey) + Code.quote + Code.rparens
             val comment = Code.blockComment(v)
             comment + obj
           }

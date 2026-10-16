@@ -3,7 +3,6 @@ package discovery
 import org.http4s.{Method, Uri}
 import org.typelevel.paiges.Doc
 import org.typelevel.paiges.Document.ops._
-import scala.collection.compat._
 
 case class ClientCodegen(
     name: String,

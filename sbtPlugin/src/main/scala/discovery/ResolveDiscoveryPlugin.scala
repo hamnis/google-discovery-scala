@@ -5,7 +5,6 @@ import sbt.*
 import Keys.*
 
 import java.net.HttpURLConnection
-import java.nio.file.Path
 
 object ResolveDiscoveryPlugin extends AutoPlugin {
   import DiscoveryPlugin.autoImport._
