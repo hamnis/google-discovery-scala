@@ -8,7 +8,7 @@ import org.http4s.client.{Client => Http4sClient}
 import org.http4s.implicits._
 
 class DiscoveryClient[F[_]: Concurrent](client: Http4sClient[F]) {
-  implicit def entityDecoder[A](implicit d: Decoder[A]): EntityDecoder[F, A] =
+  given entityDecoder[A](using d: Decoder[A]): EntityDecoder[F, A] =
     org.http4s.circe.jsonOf
 
   def getCollection: F[DiscoveryCollection] =
@@ -25,13 +25,13 @@ class DiscoveryClient[F[_]: Concurrent](client: Http4sClient[F]) {
 object DiscoveryClient {
   case class AsJson[A](value: A, json: Json)
   object AsJson {
-    implicit def decoder[A](implicit d: Decoder[A]): Decoder[AsJson[A]] =
+    given decoder[A](using d: Decoder[A]): Decoder[AsJson[A]] =
       Decoder.instance(c =>
         for {
           json <- c.as[Json]
-          value <- json.as[A](d)
+          value <- json.as[A](using d)
         } yield AsJson(value, json))
 
-    implicit def encoder[A]: Encoder[AsJson[A]] = Encoder.encodeJson.contramap(_.json)
+    given encoder[A]: Encoder[AsJson[A]] = Encoder.encodeJson.contramap(_.json)
   }
 }

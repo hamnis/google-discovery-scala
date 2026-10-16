@@ -1,10 +1,10 @@
-val circeVersion = "0.14.15"
+val circeVersion = "0.14.17"
 
-val scala212 = "2.12.21"
-val scala213 = "2.13.17"
-val scala3 = "3.3.7"
+val scala3 = "3.8.4"
 
-val baseVersion = "0.6"
+val baseVersion = "0.7"
+
+val http4sVersion = "0.23.38"
 
 inThisBuild(
   Seq(
@@ -47,14 +47,14 @@ inThisBuild(
         )
       )
     ),
-    homepage := Some(url("https://github.com/hamnis/google-discovery-scala")),
+    homepage := Some(uri("https://github.com/hamnis/google-discovery-scala")),
     licenses := List(License.Apache2),
     developers := List(
       Developer(
         "hamnis",
         "Erlend Hamnaberg",
         "erlend@hamnaberg.net",
-        url("https://github.com/hamnis")
+        uri("https://github.com/hamnis")
       )
     ),
     publishTo := {
@@ -69,23 +69,22 @@ def doConfigure(project: Project): Project =
     .enablePlugins(MyVersioningPlugin)
 
 val core = (projectMatrix in file("core"))
-  .jvmPlatform(scalaVersions = Seq(scala212, scala213, scala3))
+  .jvmPlatform(scalaVersions = Seq(scala3))
   .configure(doConfigure)
   .settings(
     name := "google-discovery-core",
-    javacOptions ++= List("--release", "8"),
+    javacOptions ++= List("--release", "17"),
     scalacOptions ++= List("-deprecation", "-feature", "-language:higherKinds"),
     libraryDependencies ++= Seq(
       "io.circe" %% "circe-core" % circeVersion,
       "io.circe" %% "circe-generic" % circeVersion,
       "io.circe" %% "circe-jawn" % circeVersion,
-      "org.http4s" %% "http4s-core" % "0.23.33",
-      "org.http4s" %% "http4s-circe" % "0.23.33",
-      "org.http4s" %% "http4s-client" % "0.23.33",
-      "org.scalameta" %% "munit" % "1.2.3" % Test,
-      "org.typelevel" %% "munit-cats-effect" % "2.1.0" % Test,
-      "org.typelevel" %% "paiges-cats" % "0.4.4",
-      "org.scala-lang.modules" %% "scala-collection-compat" % "2.14.0"
+      "org.http4s" %% "http4s-core" % http4sVersion,
+      "org.http4s" %% "http4s-circe" % http4sVersion,
+      "org.http4s" %% "http4s-client" % http4sVersion,
+      "org.scalameta" %% "munit" % "1.3.6" % Test,
+      "org.typelevel" %% "munit-cats-effect" % "2.2.1" % Test,
+      "org.typelevel" %% "paiges-cats" % "0.4.4"
     ),
     Compile / doc / scalacOptions ++= Seq(
       "-no-link-warnings" // Suppresses problems with Scaladoc @throws links
@@ -93,12 +92,12 @@ val core = (projectMatrix in file("core"))
   )
 
 val sbtPlugin = (projectMatrix in file("sbtPlugin"))
-  .jvmPlatform(scalaVersions = Seq(scala212))
+  .jvmPlatform(scalaVersions = Seq(scala3))
   .configure(doConfigure)
   .enablePlugins(SbtPlugin)
   .dependsOn(core)
   .settings(
-    scalaVersion := scala212,
+    scalaVersion := scala3,
     name := "google-discovery-sbt",
     ThisBuild / scriptedBufferLog := false,
     ThisBuild / scriptedLaunchOpts := {
@@ -110,7 +109,7 @@ val sbtPlugin = (projectMatrix in file("sbtPlugin"))
 lazy val root = project
   .in(file("."))
   .configure(doConfigure)
-  .aggregate((core.projectRefs ++ sbtPlugin.projectRefs): _*)
+  .aggregate((core.projectRefs ++ sbtPlugin.projectRefs) *)
   .settings(
     name := "google-discovery",
     publish / skip := true,

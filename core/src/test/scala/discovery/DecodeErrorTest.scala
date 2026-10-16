@@ -38,7 +38,7 @@ class DecodeErrorTest extends FunSuite {
 
     val decoded = input.as[GoogleError]
     assert(decoded.isRight)
-    val right = decoded.right.get
+    val right = decoded.getOrElse(throw new IllegalArgumentException("Not found"))
     assertEquals(
       right.message,
       Some(

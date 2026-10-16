@@ -7,7 +7,6 @@ import org.typelevel.paiges.Document.ops._
 
 import java.nio.charset.StandardCharsets
 import java.nio.file.{Files, Path}
-import scala.collection.compat._
 
 object Codegen {
   case class SourceFile(pkg: String, name: String, imports: List[String], body: String) {
@@ -21,7 +20,7 @@ object Codegen {
           |""".stripMargin
 
     def writeTo(basedir: Path) = {
-      val packageDir = pkg.split("\\.").foldLeft(basedir)(_ resolve _)
+      val packageDir = pkg.split("\\.").foldLeft(basedir)(_.resolve(_))
       val file = packageDir.resolve(s"${name}.scala")
       Files.createDirectories(packageDir)
       Files.write(file, render.getBytes(StandardCharsets.UTF_8))

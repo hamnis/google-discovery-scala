@@ -1,8 +1,8 @@
 package discovery
 
-import io.circe._
-import sbt.Keys._
-import sbt._
+import io.circe.*
+import sbt.Keys.*
+import sbt.{Def, *}
 
 object DiscoveryPlugin extends AutoPlugin {
 
@@ -17,16 +17,11 @@ object DiscoveryPlugin extends AutoPlugin {
   }
   import autoImport._
 
-  override val projectSettings = Seq(
+  override val projectSettings: Seq[Def.Setting[?]] = Seq(
     Compile / sourceGenerators += Compile / discoveryGenerate,
-    Compile / packageSrc / mappings ++= {
-      val base = (Compile / sourceManaged).value
-      val files = (Compile / managedSources).value
-      files.map(f => (f, f.relativeTo(base).get.getPath))
-    },
     Compile / discoveryFile := discoveryDocumentFile(baseDirectory.value),
-    Compile / discoveryDocument := parseDiscovery((Compile / discoveryFile).value),
-    Compile / discoveryGenerate := {
+    Compile / discoveryDocument := Def.uncached(parseDiscovery((Compile / discoveryFile).value)),
+    Compile / discoveryGenerate := Def.uncached{
       val discovery = (Compile / discoveryDocument).value
       val mangedDir = (Compile / sourceManaged).value / "scala"
       val packageName = discoveryPackage.value

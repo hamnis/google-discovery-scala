@@ -2,7 +2,7 @@ ThisBuild / version := "0.1"
 
 name := "bigquery"
 
-crossScalaVersions := List("2.13.12", "2.12.18", "3.3.1")
+crossScalaVersions := List("2.13.18", "3.9.0")
 scalaVersion := crossScalaVersions.value.head
 
 //scalacOptions ++= Seq("-J-Xss10M")
@@ -11,12 +11,12 @@ enablePlugins(DiscoveryPlugin)
 
 discoveryPackage := "bigquery"
 
-val circeVersion = "0.14.6"
-val http4sVersion = "0.23.24"
+val circeVersion = "0.14.17"
+val http4sVersion = "0.23.38"
 
 libraryDependencies ++= Seq(
   "io.circe" %% "circe-core" % circeVersion,
   "org.http4s" %% "http4s-circe" % http4sVersion,
   "org.http4s" %% "http4s-client" % http4sVersion,
-  "org.scodec" %% "scodec-bits" % "1.1.37"
+  "org.scodec" %% "scodec-bits" % "1.2.5"
 )

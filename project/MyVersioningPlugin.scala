@@ -1,15 +1,11 @@
-package org.typelevel.sbt
-
+import TypelevelKernelPlugin.*
 import com.github.sbt.git.GitPlugin
 import com.github.sbt.git.SbtGit.git
-import org.typelevel.sbt.TypelevelKernelPlugin._
-import org.typelevel.sbt.kernel.GitHelper
-import org.typelevel.sbt.kernel.V
-import sbt._
+import sbt.*
 
 import scala.util.Try
 
-import Keys._
+import Keys.*
 
 //make sbt-typelevel versioning suck less
 object MyVersioningPlugin extends AutoPlugin {
@@ -30,9 +26,9 @@ object MyVersioningPlugin extends AutoPlugin {
       "The latest tagged version on this branch, including milestones and release candidates. If applicable, this will be the current tagged version.")
   }
 
-  import autoImport._
+  import autoImport.*
 
-  override def buildSettings: Seq[Setting[_]] = Seq(
+  override def buildSettings: Seq[Setting[?]] = Seq(
     versionScheme := Some("early-semver"),
     myUntaggedAreSnapshots := true,
     isSnapshot := {
@@ -47,7 +43,7 @@ object MyVersioningPlugin extends AutoPlugin {
         // we are running in a workflow job that was *not* triggered by a tag
         // so, we discard tags that would affect our versioning
         git.gitCurrentTags.value.flatMap {
-          case V.Tag(_) => None
+          case MyVersion.Tag(_) => None
           case other => Some(other)
         }
       else
@@ -56,7 +52,7 @@ object MyVersioningPlugin extends AutoPlugin {
     version := {
       import scala.sys.process._
 
-      val baseV = V(myBaseVersion.value)
+      val baseV = MyVersion(myBaseVersion.value)
         .filter(v => v.patch.isEmpty && v.prerelease.isEmpty)
         .getOrElse(sys.error(s"tlBaseVersion must be of form x.y: ${myBaseVersion.value}"))
 
@@ -93,7 +89,7 @@ object MyVersioningPlugin extends AutoPlugin {
         version
       }
 
-      V(version) match {
+      MyVersion(version) match {
         case None =>
           sys.error(s"version must be semver format: $version")
         case Some(v) if !(v.isSameSeries(baseV) || v >= baseV) =>
@@ -112,6 +108,6 @@ object MyVersioningPlugin extends AutoPlugin {
   private val Description = """^.*-(\d+)-[a-zA-Z0-9]+$""".r
 
   private def taggedVersion = Def.setting {
-    git.gitCurrentTags.value.collect { case V.Tag(v) => v }.sorted.lastOption
+    git.gitCurrentTags.value.collect { case MyVersion.Tag(v) => v }.sorted.lastOption
   }
 }
