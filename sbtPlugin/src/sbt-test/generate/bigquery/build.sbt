@@ -12,7 +12,7 @@ enablePlugins(DiscoveryPlugin)
 discoveryPackage := "bigquery"
 
 val circeVersion = "0.14.17"
-val http4sVersion = "0.23.38"
+val http4sVersion = "0.23.39"
 
 libraryDependencies ++= Seq(
   "io.circe" %% "circe-core" % circeVersion,

@@ -2,7 +2,7 @@ ThisBuild / version := "0.1"
 
 name := "bigquery"
 
-crossScalaVersions := List("3.3.1")
+crossScalaVersions := List("3.3.9")
 scalaVersion := crossScalaVersions.value.head
 
 //scalacOptions ++= Seq("-J-Xss10M")
@@ -11,8 +11,8 @@ enablePlugins(DiscoveryPlugin)
 
 discoveryPackage := "firebase"
 
-val circeVersion = "0.14.6"
-val http4sVersion = "0.23.26"
+val circeVersion = "0.14.17"
+val http4sVersion = "0.23.39"
 
 libraryDependencies ++= Seq(
   "io.circe" %% "circe-core" % circeVersion,

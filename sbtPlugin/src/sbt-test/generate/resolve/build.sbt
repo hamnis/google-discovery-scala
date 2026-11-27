@@ -2,7 +2,7 @@ ThisBuild / version := "0.1"
 
 name := "bigquery-resolve"
 
-crossScalaVersions := List("2.13.12")
+crossScalaVersions := List("2.13.18")
 scalaVersion := crossScalaVersions.value.head
 
 //scalacOptions ++= Seq("-J-Xss10M")
@@ -14,8 +14,8 @@ enablePlugins(DiscoveryPlugin)
 discoveryUri := url("http://localhost:25609/discovery.json")
 discoveryPackage := "bigquery"
 
-val circeVersion = "0.14.6"
-val http4sVersion = "0.23.24"
+val circeVersion = "0.14.17"
+val http4sVersion = "0.23.39"
 
 libraryDependencies ++= Seq(
   "io.circe" %% "circe-core" % circeVersion,

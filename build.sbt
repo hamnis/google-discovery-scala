@@ -1,10 +1,10 @@
 val circeVersion = "0.14.17"
 
-val scala3 = "3.8.4"
+val scala3 = "3.9.0"
 
 val baseVersion = "0.7"
 
-val http4sVersion = "0.23.38"
+val http4sVersion = "0.23.39"
 
 inThisBuild(
   Seq(
