@@ -11,7 +11,7 @@ enablePlugins(ResolveDiscoveryPlugin)
 enablePlugins(DiscoveryPlugin)
 
 //discoveryUri := url("https://bigquery.googleapis.com/discovery/v1/apis/bigquery/v2/rest")
-discoveryUri := url("http://localhost:25609/discovery.json")
+discoveryUri := uri("http://localhost:25609/discovery.json")
 discoveryPackage := "bigquery"
 
 val circeVersion = "0.14.17"
