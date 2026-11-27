@@ -5,7 +5,7 @@ name := "bigquery"
 crossScalaVersions := List("2.13.18", "3.9.0")
 scalaVersion := crossScalaVersions.value.head
 
-scalacOptions ++= Seq("-J-Xss2M")
+//scalacOptions ++= Seq("-J-Xss5M")
 
 enablePlugins(DiscoveryPlugin)
 
