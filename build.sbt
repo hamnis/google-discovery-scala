@@ -28,7 +28,7 @@ inThisBuild(
         )
       ),
       WorkflowStep.Sbt(
-        commands = List("publishSigned", "sonaRelease"),
+        commands = List("publishSigned", "pushRelease"),
         name = Some("Publish project"),
         env = Map(
           "SONATYPE_PASSWORD" -> "${{ secrets.SONATYPE_PASSWORD }}",
@@ -58,14 +58,20 @@ inThisBuild(
         "erlend@hamnaberg.net",
         uri("https://github.com/hamnis")
       )
-    )
-  ))
-
-publishTo := {
-  val centralSnapshots = "https://central.sonatype.com/repository/maven-snapshots/"
-  if ((ThisBuild / isSnapshot).value) Some("central-snapshots".at(centralSnapshots))
-  else localStaging.value
-}
+    ),
+    publishTo := {
+      val centralSnapshots = "https://central.sonatype.com/repository/maven-snapshots/"
+      if ((ThisBuild / isSnapshot).value) Some("central-snapshots".at(centralSnapshots))
+      else localStaging.value
+    },
+    commands += Command.command("pushRelease") { state =>
+      if (state.getSetting(isSnapshot).getOrElse(false))
+        state // a snapshot is good-to-go
+      else // a non-snapshot releases as a bundle
+        Command.process("sonaRelease", state, _ => ())
+    }
+  )
+)
 
 def doConfigure(project: Project): Project =
   project
