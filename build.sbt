@@ -104,7 +104,7 @@ val sbtPlugin = (projectMatrix in file("sbtPlugin"))
     ThisBuild / scriptedBufferLog := false,
     ThisBuild / scriptedLaunchOpts := {
       scriptedLaunchOpts.value ++
-        Seq("-Xmx1024M", "-Dplugin.version=" + (ThisBuild / version).value)
+        Seq("-Xmx2048M", "-Dplugin.version=" + (ThisBuild / version).value)
     }
   )
 
